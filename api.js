@@ -1,26 +1,29 @@
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
-var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+var bodyParser = require('body-parser');
+var cors = require('cors');
 
 var api = express();
 
-// view engine setup
-api.set('views', path.join(__dirname, 'views'));
-api.set('view engine', 'jade');
+//reads in configuration from a .env file
+require('dotenv').config();
 
 api.use(logger('dev'));
-api.use(express.json());
-api.use(express.urlencoded({ extended: false }));
-api.use(cookieParser());
-api.use(express.static(path.join(__dirname, 'public')));
+api.use(cors());
 
-api.use('/', indexRouter);
-api.use('/users', usersRouter);
+api.use(bodyParser.json({limit: '10mb', extended: true}));
+
+var router = express.Router();
+
+var indexRouter = require('./routes/index');
+router.use('/', indexRouter);
+
+var titleRouter = require('./routes/title');
+router.use('/title', titleRouter);
+
+api.use('/', router);
 
 // catch 404 and forward to error handler
 api.use(function(req, res, next) {
