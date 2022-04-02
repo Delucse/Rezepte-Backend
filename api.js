@@ -15,6 +15,8 @@ api.use(cors());
 
 api.use(bodyParser.json({limit: '10mb', extended: true}));
 
+api.use('/media', express.static(path.join(__dirname, 'public')));
+
 var router = express.Router();
 
 var indexRouter = require('./routes/index');
