@@ -15,7 +15,7 @@ api.post('/', (req, res) => {
             // 'File too large'
             return res.send('Mind. eine Bilder-Datei ist zu groß.');
         } else {
-            return res.send('Error');
+            return res.send(err);
         }
     } else {
       if(req.files.length > 0){
