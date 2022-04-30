@@ -5,7 +5,7 @@ const { upload } = require("../helper/uploadImages");
 
 const mongoose = require('mongoose');
 const Picture = require('../models/picture');
-const Recipe = require('../models/Recipe');
+const Recipe = require('../models/recipe');
 
 
 recipe.post('/', (req, res) => {
