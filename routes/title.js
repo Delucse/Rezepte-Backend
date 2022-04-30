@@ -7,12 +7,10 @@ const Title = require('../models/title');
 api.get('/', async function(req, res, next) {
   try{
     var result = await Title.find();
-    return res.status(200).send(
-      result
-    );
+    res.status(200).send(result);
   }
   catch(err){
-    return res.status(500).send(err);
+    res.status(500).json({msg: err.message});
   }
 });
 
@@ -25,12 +23,12 @@ api.put('/', async function(req, res, next) {
       // set initial title
       result = await new Title({title: req.body.title}).save();
     }
-    return res.status(200).send(
+    res.status(200).send(
       result
     );
   }
   catch(err){
-    return res.status(500).send(err);
+    res.status(500).json({msg: err.message});
   }
 });
 

@@ -47,7 +47,7 @@ recipe.get('/', async (req, res) => {
     const recipe = await Recipe.find({}).populate('pictures', 'file');
     res.send(recipe);
   } catch (e) {
-    res.status(400).send(e);
+    res.status(400).json({ msg: e.message });
   }
 });
 
@@ -57,10 +57,10 @@ recipe.get('/:id', async (req, res) => {
     if(recipe){
       res.send(recipe);
     } else {
-      res.status(400).send('Recipe not available.');
+      res.status(400).send({ msg: 'Recipe not available.' });
     }
   } catch (e) {
-    res.status(400).send(e);
+    res.status(400).json({ msg: e.message });
   }
 });
 

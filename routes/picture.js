@@ -13,9 +13,9 @@ api.post('/', (req, res) => {
     if (err) {
         if (err.code === 'LIMIT_FILE_SIZE') {
             // 'File too large'
-            return res.send('Mind. eine Bilder-Datei ist zu groß.');
+            return res.staus(400).json({msg: 'Mind. eine Bilder-Datei ist zu groß.'});
         } else {
-            return res.send(err);
+            return res.status(400).json({msg: err.message});
         }
     } else {
       if(req.files.length > 0){
@@ -31,12 +31,12 @@ api.post('/', (req, res) => {
           });
           const images = await Promise.all(promises);
           res.status(200).send('Pictures are uploaded successfully.')
-        } catch (err) {
-          res.status(400).json(err);
+        } catch (e) {
+          res.status(400).json({ msg: e.message });
         }        
       }
       else {
-        return res.send('Keine Bilder übergeben');
+        res.staus(400).json({msg: 'Keine Bilder übergeben'});
       }  
     }
   }));
@@ -45,12 +45,10 @@ api.post('/', (req, res) => {
 api.get('/', async function(req, res, next) {
   try{
     var result = await Picture.find();
-    return res.status(200).send(
-      result
-    );
+    res.status(200).send(result);
   }
-  catch(err){
-    return res.status(500).send(err);
+  catch(e){
+    res.status(500).json({msg: e.message });
   }
 });
 
