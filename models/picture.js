@@ -6,10 +6,6 @@ const mongoose = require('mongoose');
 
 // schema for user
 const pictureSchema = mongoose.Schema({
-  description: {
-    type: String,
-    default: 'Das ist eine Beschreibung',
-  },
   contentType: {
     type: String,
     required: true
@@ -23,7 +19,8 @@ const pictureSchema = mongoose.Schema({
     required: true
   }
 },{
-  timestamps: true
+  timestamps: true,
+  versionKey: 'updates'
 });
 
 module.exports = mongoose.model('Picture', pictureSchema);

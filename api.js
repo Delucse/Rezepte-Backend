@@ -28,6 +28,9 @@ router.use('/title', titleRouter);
 var pictureRouter = require('./routes/picture');
 router.use('/pictures', pictureRouter);
 
+var recipeRouter = require('./routes/recipe');
+router.use('/recipe', recipeRouter);
+
 api.use('/', router);
 
 // catch 404 and forward to error handler
