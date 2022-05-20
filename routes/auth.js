@@ -7,11 +7,12 @@ const bcrypt = require("bcryptjs");
 const mongoose = require('mongoose');
 const User = require('../models/user');
 const RefreshToken = require('../models/refreshToken');
+const TokenBlacklist = require('../models/tokenBlacklist');
 
-const { createToken } = require('../helper/authorization');
+const { createToken, authorization, invalidateToken } = require('../helper/authorization');
 
 
-api.post('/signup', async function(req, res, next) {
+api.post('/signup', async (req, res) => {
     try{
         // checking if user is already in db
         const emailExists = await User.findOne({email: req.body.email});
@@ -38,7 +39,7 @@ api.post('/signup', async function(req, res, next) {
 });
 
 
-api.post('/signin', async function(req, res, next) {
+api.post('/signin', async (req, res) => {
     try{
         // checking if username exists
         const user = await User.findOne({username: req.body.username});
@@ -64,7 +65,34 @@ api.post('/signin', async function(req, res, next) {
 });
 
 
-api.post('/refresh', async function(req, res, next) {
+api.post('/signout', authorization, async (req, res) => {
+    const rawAuthorizationHeader = req.header('authorization');
+    const [, token] = rawAuthorizationHeader.split(' ');
+    try {
+        if(req.body.refreshToken){
+            var deleteToken = await RefreshToken.deleteOne({token: req.body.refreshToken, user: req.user.id});
+            if(deleteToken.deletedCount > 0){
+                // invalidate JWT
+                await invalidateToken(token);
+                return res.status(200).json({message: 'Signed out successfully.'});
+            } else {
+                return res.status(401).json({message: 'Refresh Token does not exist.'});
+            }
+        } else {
+            // invalidate JWT
+            await invalidateToken(token);
+            RefreshToken.deleteMany({user: req.user.id}).exec();
+        }
+        res.status(200).json({message: 'Signed out successfully.'});
+        
+    }
+    catch(err){
+        res.status(500).json({message: err.message});
+    }
+});
+
+
+api.post('/refresh', async (req, res) => {
     try{
         const { token: requestToken } = req.body;
         if (requestToken == null) return res.status(403).json({ message: "Unauthorized" });
@@ -76,9 +104,9 @@ api.post('/refresh', async function(req, res, next) {
             return res.status(403).json({message: "Refresh token was expired. Please make a new signin request"});
         }
 
-        RefreshToken.findByIdAndRemove(refreshToken._id, { useFindAndModify: false }).exec();
         // create JWT-Token and refresh-Token
         const {token: newToken, refreshToken: newRefreshToken } = await createToken(refreshToken.user);
+        RefreshToken.findByIdAndRemove(refreshToken._id, { useFindAndModify: false }).exec();
 
         res.status(200).json({
             token: newToken,

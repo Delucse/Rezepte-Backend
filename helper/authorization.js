@@ -4,6 +4,7 @@ const moment = require('moment');
 
 const RefreshToken = require('../models/refreshToken');
 const User = require('../models/user');
+const TokenBlacklist = require('../models/tokenBlacklist');
 
 const { TokenExpiredError } = jwt;
 
@@ -29,6 +30,10 @@ const authorization = (req, res, next) => {
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
         if (err) {
             // return catchError(err, res);
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+        var invalid = await TokenBlacklist.findOne({token: token});
+        if(invalid){
             return res.status(401).json({ message: "Unauthorized" });
         }
         var user = await User.findById(decoded.id);
@@ -70,6 +75,14 @@ const createToken = (id) => {
     });
 };
 
+const invalidateToken = async (token) => {
+    var newBlacklistedToken = new TokenBlacklist({
+        token: token,
+        expiryDate: moment.utc().add(Number(process.env.JWT_EXPIRATION), 's').toDate(),
+    });
+    await newBlacklistedToken.save();
+};
+
 // @see: https://github.com/sensebox/openSenseMap-API/blob/461777e52f8568a6f234945fbae083688a7edb59/packages/api/lib/helpers/jwtRefreshTokenHasher.js
 const hashJWT = (jwtString) => {
     if (typeof jwtString !== 'string') {
@@ -85,5 +98,6 @@ const hashJWT = (jwtString) => {
 
   module.exports = {
     authorization,
-    createToken
+    createToken,
+    invalidateToken
   };
