@@ -53,8 +53,7 @@ api.post('/signin', async (req, res) => {
         const {token: token, refreshToken: refreshToken } = await createToken(user._id);
 
         res.status(200).send({
-            id: user._id,
-            username: user.username,
+            user: {username: user.username},
             token: token,
             refreshToken: refreshToken,
         });
@@ -69,8 +68,8 @@ api.post('/signout', authorization, async (req, res) => {
     const rawAuthorizationHeader = req.header('authorization');
     const [, token] = rawAuthorizationHeader.split(' ');
     try {
-        if(req.body.refreshToken){
-            var deleteToken = await RefreshToken.deleteOne({token: req.body.refreshToken, user: req.user.id});
+        if(req.body.token){
+            var deleteToken = await RefreshToken.deleteOne({token: req.body.token, user: req.user.id});
             if(deleteToken.deletedCount > 0){
                 // invalidate JWT
                 await invalidateToken(token);
