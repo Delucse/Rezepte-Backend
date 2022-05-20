@@ -22,6 +22,9 @@ var router = express.Router();
 var indexRouter = require('./routes/index');
 router.use('/', indexRouter);
 
+var authRouter = require('./routes/auth');
+router.use('/auth', authRouter);
+
 var titleRouter = require('./routes/title');
 router.use('/title', titleRouter);
 
@@ -42,11 +45,10 @@ api.use(function(req, res, next) {
 api.use(function(err, req, res, next) {
   // set locals, only providing error in development
   res.locals.message = err.message;
-  res.locals.error = req.api.get('env') === 'development' ? err : {};
+  // res.locals.error = req.api.get('env') === 'development' ? err : {};
 
-  // render the error page
   res.status(err.status || 500);
-  res.json({msg: 'An Error has been thrown.' });
+  res.json({message: 'An Error has been thrown.' });
 });
 
 module.exports = api;

@@ -2,6 +2,7 @@ var express = require('express');
 var api = express.Router();
 
 const { upload } = require("../helper/uploadImages");
+const { authorization } = require("../helper/authorization");
 
 const mongoose = require('mongoose');
 const Picture = require('../models/picture');
@@ -42,7 +43,7 @@ api.post('/', (req, res) => {
   }));
 });
 
-api.get('/', async function(req, res, next) {
+api.get('/', authorization, async function(req, res, next) {
   try{
     var result = await Picture.find();
     res.status(200).send(result);
