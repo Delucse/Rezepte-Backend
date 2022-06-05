@@ -15,21 +15,61 @@ const recipeSchema = mongoose.Schema({
     required: true
   },
   portion: {
-    type: mongoose.Mixed,
-    required: true
+    count: {
+      type: Number,
+      required: true
+    },
+    volume: {
+      type: Number,
+      required: true
+    }
   },
   time: {
-    type: mongoose.Mixed,
-    required: true
+    preparation: {
+      type: Number,
+      required: true
+    },
+    resting: {
+      type: Number,
+      required: true
+    },
+    baking: {
+      type: Number,
+      required: true
+    }
   },
   keywords: {
     type: Array,
     required: true
   },
-  ingredients: {
-    type: mongoose.Mixed,
-    required: true
-  },
+  // ingredients: {
+  //   type: mongoose.Mixed,
+  //   required: true
+  // },
+  ingredients: [
+    {
+      title: {
+        type: String,
+        required: true
+      },
+      food: [
+        {
+          amount: {
+            type: Number,
+            required: true
+          },
+          unit: {
+            type: String,
+            required: true
+          },
+          aliment: {
+            type: String,
+            required: true
+          }
+        }
+      ]
+    }
+  ],
   steps: {
     type: Array,
     required: true
