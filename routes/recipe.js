@@ -2,13 +2,14 @@ var express = require('express');
 var recipe = express.Router();
 
 const { upload } = require("../helper/uploadImages");
+const { authorization } = require("../helper/authorization");
 
 const mongoose = require('mongoose');
 const Picture = require('../models/picture');
 const Recipe = require('../models/recipe');
 
 
-recipe.post('/', (req, res) => {
+recipe.post('/', authorization, (req, res) => {
   upload.array('pictures')(req, res, (async err => {
     if (err) {
       if (err.code === 'LIMIT_FILE_SIZE') {
@@ -20,7 +21,7 @@ recipe.post('/', (req, res) => {
     } else {
       try {
         var {title, source, portion, time, keywords, ingredients, steps} = req.body;
-        var newRecipe = {title, source, portion, time, keywords, ingredients, steps};
+        var newRecipe = {title, source, portion, time, keywords, ingredients, steps, user: req.user.id};
         if(req.files){
           const promises = req.files.map(file => {
             var newPic = new Picture({
@@ -45,6 +46,15 @@ recipe.post('/', (req, res) => {
 recipe.get('/', async (req, res) => {
   try {
     const recipe = await Recipe.find({}).populate('pictures', 'file');
+    res.send(recipe);
+  } catch (e) {
+    res.status(400).json({ msg: e.message });
+  }
+});
+
+recipe.get('/user', authorization, async (req, res) => {
+  try {
+    const recipe = await Recipe.find({user: req.user.id}).populate('pictures', 'file');
     res.send(recipe);
   } catch (e) {
     res.status(400).json({ msg: e.message });

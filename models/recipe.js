@@ -6,6 +6,11 @@ const mongoose = require('mongoose');
 
 // Create Schema
 const recipeSchema = mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   title: {
     type: String,
     required: true
@@ -42,10 +47,6 @@ const recipeSchema = mongoose.Schema({
     type: Array,
     required: true
   },
-  // ingredients: {
-  //   type: mongoose.Mixed,
-  //   required: true
-  // },
   ingredients: [
     {
       title: {
