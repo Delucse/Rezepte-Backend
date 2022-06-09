@@ -43,10 +43,12 @@ const recipeSchema = mongoose.Schema({
       required: true
     }
   },
-  keywords: {
-    type: Array,
-    required: true
-  },
+  keywords: [
+    {
+      type: String,
+      required: true
+    }
+  ],
   ingredients: [
     {
       title: {

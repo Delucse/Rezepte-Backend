@@ -45,7 +45,40 @@ recipe.post('/', authorization, (req, res) => {
 
 recipe.get('/', async (req, res) => {
   try {
-    const recipe = await Recipe.find({}).populate('pictures', 'file');
+    const aggregate = [];
+
+    if(req.query.search){
+      if(req.query.type !== 'ingredients'){
+        aggregate.push({ $match: {$or: [{title: {$regex: new RegExp(req.query.search, 'i')}}, {keywords: {$regex: new RegExp(req.query.search, 'i')}}]}});
+      }
+    }
+
+    if(req.query.keywords){
+      var keywords = req.query.keywords.split(',');
+      keywords.forEach(key => {
+        aggregate.push({ $match: {keywords: {$regex: new RegExp(key, 'i')}}});  
+      });
+    }
+
+    aggregate.push({ $set: { time: { $add: [ "$time.preparation", "$time.resting", "$time.baking" ] } } });
+    aggregate.push({ $lookup: {from: 'pictures', localField: 'pictures', foreignField: '_id', as: 'pictures'}}); // populate('pictures', 'file');
+    
+    var sort = 'lowerTitle';
+    if(req.query.sort && req.query.sort !== 'title'){
+      sort = req.query.sort;
+    } else {
+      aggregate.push({ $set: { lowerTitle: { $toLower: "$title" }}}); // collation does also the trick
+    }
+
+    var ascending = 1;
+    if(req.query.ascending && req.query.ascending === 'false'){
+      ascending = -1;
+    }
+    aggregate.push({ $sort : { [sort]: ascending, _id: ascending } });
+
+    aggregate.push({ $project: {title: 1, pictures: 1, time: 1, keywords: 1, date: '$createdAt'}});
+  
+    const recipe = await Recipe.aggregate(aggregate);
     res.send(recipe);
   } catch (e) {
     res.status(400).json({ msg: e.message });
