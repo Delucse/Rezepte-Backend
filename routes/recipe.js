@@ -78,6 +78,9 @@ const createSearchAggregate = ({search, type, keywords, sort, ascending}, match)
       score = { $meta: "textScore" }; // default value for search term
     }
   } else {
+    if(match){
+      aggregate.push({$match: match});
+    }
     sort = 'title'; // default sort for no search term
   }
 
