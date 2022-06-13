@@ -43,43 +43,81 @@ recipe.post('/', authorization, (req, res) => {
   }));
 });
 
-recipe.get('/', async (req, res) => {
-  try {
-    const aggregate = [];
+const createSearchAggregate = ({search, type, keywords, sort, ascending}, match) => {
+  const aggregate = [];
 
-    if(req.query.search){
-      if(req.query.type !== 'ingredients'){
-        aggregate.push({ $match: {$or: [{title: {$regex: new RegExp(req.query.search, 'i')}}, {keywords: {$regex: new RegExp(req.query.search, 'i')}}]}});
+  if(search){
+    var score = 1;
+    if(type && type !== 'all'){
+      if(type === 'ingredients'){
+        aggregate.push({$unwind: '$ingredients'});
+        aggregate.push({$set: {ingredients: {$reduce: {input: "$ingredients.food.aliment", initialValue: "", in: {$concat : ["$$value", "$$this"]}}}}});      
       }
-    }
-
-    if(req.query.keywords){
-      var keywords = req.query.keywords.split(',');
-      keywords.forEach(key => {
-        aggregate.push({ $match: {keywords: {$regex: new RegExp(key, 'i')}}});  
-      });
-    }
-
-    aggregate.push({ $set: { time: { $add: [ "$time.preparation", "$time.resting", "$time.baking" ] } } });
-    aggregate.push({ $lookup: {from: 'pictures', localField: 'pictures', foreignField: '_id', as: 'pictures'}}); // populate('pictures', 'file');
-    
-    var sort = 'lowerTitle';
-    if(req.query.sort && req.query.sort !== 'title'){
-      sort = req.query.sort;
+      else if(type === 'keywords'){
+        type = 'keys'
+        aggregate.push({$set: {keys: {$reduce: {input: "$keywords", initialValue: "", in: {$concat : ["$$value", "$$this"]}}}}});
+      }
+      else if(type === 'steps'){
+        aggregate.push({$unwind: '$steps'});
+      }
+      search = search.replaceAll(/(\s*(,|;)\s*|\s+)/gi,' ').replace(/\s$/, '').split(' ');
+      var scoreRegEx = search.map(search => {
+        return {$size: {$regexFindAll: {input: `$${type}`, regex: search, options: 'i'}}}
+      })
+      if(match){
+        aggregate.push({$match: match});
+      }
+      aggregate.push({ $set: {score: {$sum: scoreRegEx}}});
+      aggregate.push({ $match: {score: {$gt: 0}}});
     } else {
+      if(match){
+        aggregate.push({ $match: {$and:  [match, {$text: { $search: search } }]}});
+      } else {
+        aggregate.push({ $match: {$text: { $search: search }}});
+      }
+      score = { $meta: "textScore" }; // default value for search term
+    }
+  } else {
+    sort = 'title'; // default sort for no search term
+  }
+
+  if(keywords){
+    keywords = keywords.replaceAll(/(\s*(,|;)\s*|\s+)/gi,',').replace(/,$/, '').split(',');
+    var keywordsRegEx = keywords.map(key => {
+      return {keywords: {$regex: key, $options: 'i'}};
+    });
+    aggregate.push({ $match: {$and: keywordsRegEx}});  
+  }
+
+  aggregate.push({ $set: { time: { $add: [ "$time.preparation", "$time.resting", "$time.baking" ] } } });
+  aggregate.push({ $lookup: {from: 'pictures', localField: 'pictures', foreignField: '_id', as: 'picture'}}); // populate('pictures', 'file');
+  aggregate.push({ $unwind: '$picture'});
+
+  if(sort){
+    if(sort === 'title'){
+      sort = 'lowerTitle';
       aggregate.push({ $set: { lowerTitle: { $toLower: "$title" }}}); // collation does also the trick
     }
+  } else {
+    sort = 'score' // default value
+  }
 
-    var ascending = 1;
-    if(req.query.ascending && req.query.ascending === 'false'){
-      ascending = -1;
-    }
-    aggregate.push({ $sort : { [sort]: ascending, _id: ascending } });
+  if(ascending && ascending === 'false'){
+    ascending = -1;
+  } else {
+    ascending = 1;
+  }
 
-    aggregate.push({ $project: {title: 1, pictures: 1, time: 1, keywords: 1, date: '$createdAt'}});
+  aggregate.push({ $sort : { [sort]: ascending, _id: ascending } });
+  aggregate.push({ $project: {title: 1, picture: '$picture.file', time: 1, keywords: 1, date: '$createdAt', score: score}});
   
-    const recipe = await Recipe.aggregate(aggregate);
-    res.send(recipe);
+  return aggregate;
+};
+
+recipe.get('/', async (req, res) => {
+  try {
+    const recipes = await Recipe.aggregate(createSearchAggregate(req.query));
+    res.send(recipes);
   } catch (e) {
     res.status(400).json({ msg: e.message });
   }
@@ -87,8 +125,9 @@ recipe.get('/', async (req, res) => {
 
 recipe.get('/user', authorization, async (req, res) => {
   try {
-    const recipe = await Recipe.find({user: req.user.id}).populate('pictures', 'file');
-    res.send(recipe);
+    const match = {user: req.user.id};
+    const recipes = await Recipe.aggregate(createSearchAggregate(req.query, match));
+    res.send(recipes);
   } catch (e) {
     res.status(400).json({ msg: e.message });
   }

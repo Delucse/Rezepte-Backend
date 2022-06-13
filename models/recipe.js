@@ -73,10 +73,12 @@ const recipeSchema = mongoose.Schema({
       ]
     }
   ],
-  steps: {
-    type: Array,
-    required: true
-  },
+  steps: [
+    {
+      type: String,
+      required: true
+    }
+  ],
   pictures: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Picture'
@@ -87,6 +89,21 @@ const recipeSchema = mongoose.Schema({
     versionKey: 'updates'
 });
 
+recipeSchema.index(
+  { 
+    title: 'text', 
+    keywords: 'text',
+    'ingredients.title': 'text',
+    'ingredients.food.aliment': 'text',
+    steps: 'text'
+  }, {
+    default_language: "de",
+    name: "all"
+  }
+);
+
 const Recipe = mongoose.model('Recipe', recipeSchema);
+
+Recipe.createIndexes();
 
 module.exports = Recipe;
