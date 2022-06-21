@@ -93,8 +93,7 @@ const createSearchAggregate = ({search, type, keywords, sort, ascending}, match)
   }
 
   aggregate.push({ $set: { time: { $add: [ "$time.preparation", "$time.resting", "$time.baking" ] } } });
-  aggregate.push({ $lookup: {from: 'pictures', localField: 'pictures', foreignField: '_id', as: 'picture'}}); // populate('pictures', 'file');
-  aggregate.push({ $unwind: '$picture'});
+  aggregate.push({ $lookup: {from: 'pictures', localField: 'pictures', foreignField: '_id', as: 'pictures'}}); // populate('pictures', 'file');
 
   if(sort){
     if(sort === 'title'){
@@ -112,7 +111,7 @@ const createSearchAggregate = ({search, type, keywords, sort, ascending}, match)
   }
 
   aggregate.push({ $sort : { [sort]: ascending, _id: ascending } });
-  aggregate.push({ $project: {title: 1, picture: '$picture.file', time: 1, keywords: 1, date: '$createdAt', score: score}});
+  aggregate.push({ $project: {title: 1, picture: {$arrayElemAt: ["$pictures.file", 0]}, time: 1, keywords: 1, date: '$createdAt', score: score}});
   
   return aggregate;
 };
