@@ -51,12 +51,14 @@ const recipeSchema = mongoose.Schema({
   ],
   ingredients: [
     {
+      _id: false,
       title: {
         type: String,
         required: true
       },
       food: [
         {
+          _id: false,
           amount: {
             type: Number,
             required: true

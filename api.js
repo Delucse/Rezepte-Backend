@@ -51,7 +51,7 @@ api.use(function(err, req, res, next) {
   // res.locals.error = req.api.get('env') === 'development' ? err : {};
 
   res.status(err.status || 500);
-  res.json({message: 'An Error has been thrown.' });
+  res.json({message: `Error: ${err.message}` });
 });
 
 module.exports = api;

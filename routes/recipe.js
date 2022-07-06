@@ -4,6 +4,9 @@ var recipe = express.Router();
 const { upload } = require("../helper/uploadImages");
 const { authorization } = require("../helper/authorization");
 
+const path = require("path");
+const fs = require('fs');
+
 const mongoose = require('mongoose');
 const Picture = require('../models/picture');
 const Recipe = require('../models/recipe');
@@ -36,6 +39,57 @@ recipe.post('/', authorization, (req, res) => {
         }
         const recipe = await new Recipe(newRecipe).save().then(recipe => recipe._id);
         res.send({ msg: 'created recipe successfully', id: recipe});
+      } catch (e) {
+        res.status(400).json({ msg: e.message });
+      }
+    }
+  }));
+});
+
+recipe.put('/:id', authorization, (req, res) => {
+  upload.array('pictures')(req, res, (async err => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+          // 'File too large'
+          return res.send('Mind. eine Bilder-Datei ist zu groß.');
+      } else {
+          return res.send(err);
+      }
+    } else {
+      try {
+        var {title, source, portion, time, keywords, ingredients, steps, removedPictures, picturesOrder} = req.body;
+        var newRecipe = {title, source, portion, time, keywords, ingredients, steps};
+        var pictureIds = []
+        if(req.files){
+          const promises = req.files.map(file => {
+            var newPic = new Picture({
+              contentType: file.mimetype,
+              size: file.size,
+              file: file.filename
+            });
+            return newPic.save().then(pic => pic._id); // return the promise without calling it yet
+          });
+          const pictures = await Promise.all(promises);
+          pictureIds = pictures;
+        }
+        if(removedPictures && removedPictures.length > 0){
+          const folder = path.join(__dirname, "..", "/public");
+          removedPictures.forEach(async pic => {
+            const deletedPicture = await Picture.findByIdAndRemove(pic);
+            fs.unlinkSync(`${folder}/${deletedPicture.file}`);
+          });
+        }
+        if(picturesOrder){
+          if(pictureIds.length > 0){
+            pictureIds.forEach(id => {
+              picturesOrder[picturesOrder.findIndex(elem => elem === 'undefined')] = id;
+            });
+          }
+          newRecipe.pictures = picturesOrder;
+        }
+
+        const recipe = await Recipe.updateOne({_id: req.params.id}, newRecipe);
+        res.send({ msg: 'updated recipe successfully', id: req.params.id});
       } catch (e) {
         res.status(400).json({ msg: e.message });
       }
@@ -137,7 +191,7 @@ recipe.get('/user', authorization, async (req, res) => {
 
 recipe.get('/:id', async (req, res) => {
   try {
-    const recipe = await Recipe.findById(req.params.id).populate('pictures', 'file');
+    const recipe = await Recipe.findById(req.params.id).populate('pictures', 'file').populate('user', 'username');
     if(recipe){
       res.send(recipe);
     } else {
