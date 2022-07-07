@@ -23,22 +23,25 @@ recipe.post('/', authorization, (req, res) => {
       }
     } else {
       try {
-        var {title, source, portion, time, keywords, ingredients, steps} = req.body;
-        var newRecipe = {title, source, portion, time, keywords, ingredients, steps, user: req.user.id};
+        const {title, source, portion, time, keywords, ingredients, steps} = req.body;
+        const recipeId = mongoose.Types.ObjectId();
+        var newRecipe = {_id: recipeId, title, source, portion, time, keywords, ingredients, steps, user: req.user.id};
         if(req.files){
           const promises = req.files.map(file => {
             var newPic = new Picture({
               contentType: file.mimetype,
               size: file.size,
-              file: file.filename
+              file: file.filename,
+              user: req.user.id,
+              recipe: recipeId,
             });
             return newPic.save().then(pic => pic._id); // return the promise without calling it yet
           });
           const pictures = await Promise.all(promises);
           newRecipe.pictures = pictures;
         }
-        const recipe = await new Recipe(newRecipe).save().then(recipe => recipe._id);
-        res.send({ msg: 'created recipe successfully', id: recipe});
+        await new Recipe(newRecipe).save();
+        res.send({ msg: 'created recipe successfully', id: recipeId});
       } catch (e) {
         res.status(400).json({ msg: e.message });
       }
@@ -65,7 +68,9 @@ recipe.put('/:id', authorization, (req, res) => {
             var newPic = new Picture({
               contentType: file.mimetype,
               size: file.size,
-              file: file.filename
+              file: file.filename,
+              user: req.user.id,
+              recipe: req.params.id
             });
             return newPic.save().then(pic => pic._id); // return the promise without calling it yet
           });
@@ -75,8 +80,10 @@ recipe.put('/:id', authorization, (req, res) => {
         if(removedPictures && removedPictures.length > 0){
           const folder = path.join(__dirname, "..", "/public");
           removedPictures.forEach(async pic => {
-            const deletedPicture = await Picture.findByIdAndRemove(pic);
-            fs.unlinkSync(`${folder}/${deletedPicture.file}`);
+            const deletedPicture = await Picture.findOneAndRemove({_id: pic, user: req.user.id});
+            if(deletedPicture){
+              fs.unlinkSync(`${folder}/${deletedPicture.file}`);
+            }
           });
         }
         if(picturesOrder){
@@ -88,13 +95,29 @@ recipe.put('/:id', authorization, (req, res) => {
           newRecipe.pictures = picturesOrder;
         }
 
-        const recipe = await Recipe.updateOne({_id: req.params.id}, newRecipe);
+        await Recipe.updateOne({_id: req.params.id}, {$set: newRecipe, $inc: {updates: 1}});
         res.send({ msg: 'updated recipe successfully', id: req.params.id});
       } catch (e) {
         res.status(400).json({ msg: e.message });
       }
     }
   }));
+});
+
+recipe.delete('/:id', authorization, async (req, res) => {
+  const deletedRecipe = await Recipe.findOneAndRemove({_id: req.params.id, user: req.user.id});
+  if(deletedRecipe){
+    const folder = path.join(__dirname, "..", "/public");
+    deletedRecipe.pictures.forEach(async picId => {
+      const deletedPicture = await Picture.findOneAndRemove({_id: picId, user: req.user.id});
+      if(deletedPicture){
+        fs.unlinkSync(`${folder}/${deletedPicture.file}`);
+      }
+    });
+    res.send({ msg: 'deleted recipe successfully'});
+  } else {
+    res.status(400).json({ msg: 'user does not match.' });
+  }
 });
 
 const createSearchAggregate = ({search, type, keywords, sort, ascending}, match) => {

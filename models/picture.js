@@ -17,6 +17,16 @@ const pictureSchema = mongoose.Schema({
   file: {
     type: String,
     required: true
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  recipe: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Recipe',
+    required: true
   }
 },{
   timestamps: true,
