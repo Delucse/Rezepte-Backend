@@ -2,7 +2,7 @@ var express = require('express');
 var recipe = express.Router();
 
 const { upload } = require("../helper/uploadImages");
-const { authorization } = require("../helper/authorization");
+const { authorization, getUser } = require("../helper/authorization");
 
 const path = require("path");
 const fs = require('fs');
@@ -10,6 +10,7 @@ const fs = require('fs');
 const mongoose = require('mongoose');
 const Picture = require('../models/picture');
 const Recipe = require('../models/recipe');
+const User = require('../models/user');
 
 
 recipe.post('/', authorization, (req, res) => {
@@ -120,9 +121,16 @@ recipe.delete('/:id', authorization, async (req, res) => {
   }
 });
 
-const createSearchAggregate = ({search, type, keywords, sort, ascending}, match) => {
+const createSearchAggregate = async ({search, type, keywords, sort, ascending}, user, match) => {
   const aggregate = [];
-
+  
+  if(user){
+    const favorites = await User.findById(user).then(res => res.favorites);
+    aggregate.push({$set: {favorite: {$in: ["$_id", favorites] }}});
+  } else {
+    aggregate.push({$set: {favorite: false}});
+  }
+  
   if(search){
     var score = 1;
     if(type && type !== 'all'){
@@ -188,14 +196,15 @@ const createSearchAggregate = ({search, type, keywords, sort, ascending}, match)
   }
 
   aggregate.push({ $sort : { [sort]: ascending, _id: ascending } });
-  aggregate.push({ $project: {title: 1, picture: {$arrayElemAt: ["$pictures.file", 0]}, time: 1, keywords: 1, date: '$createdAt', score: score}});
+  aggregate.push({ $project: {title: 1, picture: {$arrayElemAt: ["$pictures.file", 0]}, time: 1, keywords: 1, favorite: 1, date: '$createdAt', score: score}});
   
   return aggregate;
 };
 
-recipe.get('/', async (req, res) => {
+recipe.get('/', getUser, async (req, res) => {
   try {
-    const recipes = await Recipe.aggregate(createSearchAggregate(req.query));
+    const aggregate = await createSearchAggregate(req.query, req.user && req.user.id);
+    const recipes = await Recipe.aggregate(aggregate);
     res.send(recipes);
   } catch (e) {
     res.status(400).json({ msg: e.message });
@@ -205,18 +214,42 @@ recipe.get('/', async (req, res) => {
 recipe.get('/user', authorization, async (req, res) => {
   try {
     const match = {user: req.user.id};
-    const recipes = await Recipe.aggregate(createSearchAggregate(req.query, match));
+    const aggregate = await createSearchAggregate(req.query, req.user.id, match);
+    const recipes = await Recipe.aggregate(aggregate);
     res.send(recipes);
   } catch (e) {
     res.status(400).json({ msg: e.message });
   }
 });
 
-recipe.get('/:id', async (req, res) => {
+recipe.get('/favorite', authorization, async (req, res) => {
   try {
-    const recipe = await Recipe.findById(req.params.id).populate('pictures', 'file').populate('user', 'username');
-    if(recipe){
-      res.send(recipe);
+    const match = {favorite: true};
+    const aggregate = await createSearchAggregate(req.query, req.user.id, match);
+    const recipes = await Recipe.aggregate(aggregate);
+    res.send(recipes);
+  } catch (e) {
+    res.status(400).json({ msg: e.message });
+  }
+});
+
+recipe.get('/:id', getUser, async (req, res) => {
+  try {
+    const aggregate = [];
+    aggregate.push({$match: {_id: mongoose.Types.ObjectId(req.params.id)}});
+    if(req.user){
+      const favorites = await User.findById(req.user.id).then(res => res.favorites);
+      aggregate.push({$set: {favorite: {$in: ["$_id", favorites] }}});
+    } else {
+      aggregate.push({$set: {favorite: false}});
+    }
+    aggregate.push({ $lookup: {from: 'users', localField: 'user', foreignField: '_id', pipeline: [{$project: {_id: 0, username: 1}}], as: 'user'}}); // populate('pictures', 'file');
+    aggregate.push({ $lookup: {from: 'pictures', localField: 'pictures', foreignField: '_id', pipeline: [{$lookup: {from: 'users', localField: 'user', foreignField: '_id', pipeline: [{$project: {_id: 0, username: 1}}], as: 'user'}}, {$project: {_id: 1, file: 1, user: {$arrayElemAt: ["$user.username", 0]}}}], as: 'pictures'}});
+    aggregate.push({ $project: {title: 1, user: {$arrayElemAt: ["$user.username", 0]}, portion: 1, source: 1, pictures: 1, time: 1, keywords: 1, ingredients: 1, steps: 1, updates: 1, favorite: 1, date: '$createdAt'}});
+  
+    const recipe = await Recipe.aggregate(aggregate);
+    if(recipe.length > 0){
+      res.send(recipe[0]);
     } else {
       res.status(400).send({ msg: 'Recipe not available.' });
     }
@@ -245,7 +278,7 @@ recipe.post('/:recipeId/image', authorization, (req, res) => {
             recipe: req.params.recipeId,
           });
           const picture = await newPic.save().then(pic => pic._id); // return the promise without calling it yet
-          await Recipe.findOneAndUpdate(req.params.recipeId, {$push: {pictures: picture } });
+          await Recipe.findByIdAndUpdate(req.params.recipeId, {$push: {pictures: picture } });
           res.send({ msg: 'added recipe image successfully', image: {_id: picture, file: req.file.filename}});
         }
         else {

@@ -31,11 +31,11 @@ router.use('/user', userRouter);
 var titleRouter = require('./routes/title');
 router.use('/title', titleRouter);
 
-var pictureRouter = require('./routes/picture');
-router.use('/pictures', pictureRouter);
-
 var recipeRouter = require('./routes/recipe');
 router.use('/recipe', recipeRouter);
+
+var favoriteRouter = require('./routes/favorite');
+router.use('/recipe/favorite', favoriteRouter);
 
 api.use('/', router);
 

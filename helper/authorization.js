@@ -48,6 +48,39 @@ const authorization = (req, res, next) => {
     });
 };
 
+const getUser = (req, res, next) => {
+    // get JWT from authorization-header
+    const rawAuthorizationHeader = req.header('authorization');
+    var token;
+    if(rawAuthorizationHeader){
+        [, token] = rawAuthorizationHeader.split(' ');
+    }
+  
+    if (!token) {
+        return next();
+    }
+  
+    jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
+        if (err) {
+            // return catchError(err, res);
+            return next();
+        }
+        var invalid = await TokenBlacklist.findOne({token: token});
+        if(invalid){
+            return next();
+        }
+        var user = await User.findById(decoded.id);
+        if(!user){
+            return next();
+        }
+        req.user = {
+            id: user._id,
+            username: user.username
+        }
+        next();
+    });
+};
+
 const createToken = (id) => {
     const payload = {id: id};
     const options = {expiresIn: Number(process.env.JWT_EXPIRATION)};
@@ -98,6 +131,7 @@ const hashJWT = (jwtString) => {
 
   module.exports = {
     authorization,
+    getUser,
     createToken,
     invalidateToken
   };
