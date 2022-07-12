@@ -279,7 +279,7 @@ recipe.post('/:recipeId/image', authorization, (req, res) => {
           });
           const picture = await newPic.save().then(pic => pic._id); // return the promise without calling it yet
           await Recipe.findByIdAndUpdate(req.params.recipeId, {$push: {pictures: picture } });
-          res.send({ msg: 'added recipe image successfully', image: {_id: picture, file: req.file.filename}});
+          res.send({ msg: 'added recipe image successfully', image: {_id: picture, file: req.file.filename, user: req.user.username}});
         }
         else {
           res.status(400).json({ msg: 'No image' });

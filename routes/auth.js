@@ -53,7 +53,7 @@ api.post('/signin', async (req, res) => {
         const {token: token, refreshToken: refreshToken } = await createToken(user._id);
 
         res.status(200).send({
-            user: {username: user.username},
+            user: user.username,
             token: token,
             refreshToken: refreshToken,
         });
