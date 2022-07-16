@@ -13,7 +13,7 @@ require('dotenv').config();
 api.use(logger('dev'));
 api.use(cors());
 
-api.use(bodyParser.json({limit: '10mb', extended: true}));
+api.use(bodyParser.json({ limit: '10mb', extended: true }));
 
 api.use('/media', express.static(path.join(__dirname, 'public')));
 
@@ -40,18 +40,18 @@ router.use('/recipe/favorite', favoriteRouter);
 api.use('/', router);
 
 // catch 404 and forward to error handler
-api.use(function(req, res, next) {
-  next(createError(404));
+api.use(function (req, res, next) {
+    next(createError(404));
 });
 
 // error handler
-api.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  // res.locals.error = req.api.get('env') === 'development' ? err : {};
+api.use(function (err, req, res, next) {
+    // set locals, only providing error in development
+    res.locals.message = err.message;
+    // res.locals.error = req.api.get('env') === 'development' ? err : {};
 
-  res.status(err.status || 500);
-  res.json({message: `Error: ${err.message}` });
+    res.status(err.status || 500);
+    res.json({ message: `Error: ${err.message}` });
 });
 
 module.exports = api;
