@@ -182,15 +182,6 @@ const createSearchAggregate = async (
 ) => {
     const aggregate = [];
 
-    if (user) {
-        const favorites = await User.findById(user).then(
-            (res) => res.favorites
-        );
-        aggregate.push({ $set: { favorite: { $in: ['$_id', favorites] } } });
-    } else {
-        aggregate.push({ $set: { favorite: false } });
-    }
-
     if (search) {
         var score = 1;
         if (type && type !== 'all') {
@@ -260,6 +251,15 @@ const createSearchAggregate = async (
         sort = 'title'; // default sort for no search term
     }
 
+    if (user) {
+        const favorites = await User.findById(user).then(
+            (res) => res.favorites
+        );
+        aggregate.push({ $set: { favorite: { $in: ['$_id', favorites] } } });
+    } else {
+        aggregate.push({ $set: { favorite: false } });
+    }
+
     if (keywords) {
         keywords = keywords
             .replaceAll(/(\s*(,|;)\s*|\s+)/gi, ',')
@@ -281,8 +281,14 @@ const createSearchAggregate = async (
     aggregate.push({
         $lookup: {
             from: 'pictures',
-            localField: 'pictures',
-            foreignField: '_id',
+            let: { pictureArray: [{ $arrayElemAt: ['$pictures', 0] }] },
+            pipeline: [
+                {
+                    $match: {
+                        $expr: { $in: ['$_id', '$$pictureArray'] },
+                    },
+                },
+            ],
             as: 'pictures',
         },
     }); // populate('pictures', 'file');
@@ -389,9 +395,21 @@ recipe.get('/:id', getUser, async (req, res) => {
         aggregate.push({
             $lookup: {
                 from: 'pictures',
-                localField: 'pictures',
-                foreignField: '_id',
+                let: { pictureArray: '$pictures' },
                 pipeline: [
+                    {
+                        $match: {
+                            $expr: { $in: ['$_id', '$$pictureArray'] },
+                        },
+                    },
+                    {
+                        $addFields: {
+                            sort: {
+                                $indexOfArray: ['$$pictureArray', '$_id'],
+                            },
+                        },
+                    },
+                    { $sort: { sort: 1 } },
                     {
                         $lookup: {
                             from: 'users',
