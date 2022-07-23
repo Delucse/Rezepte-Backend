@@ -229,25 +229,13 @@ const createSearchAggregate = async (
                     },
                 };
             });
-            if (match) {
-                aggregate.push({ $match: match });
-            }
             aggregate.push({ $set: { score: { $sum: scoreRegEx } } });
             aggregate.push({ $match: { score: { $gt: 0 } } });
         } else {
-            if (match) {
-                aggregate.push({
-                    $match: { $and: [match, { $text: { $search: search } }] },
-                });
-            } else {
-                aggregate.push({ $match: { $text: { $search: search } } });
-            }
+            aggregate.push({ $match: { $text: { $search: search } } });
             score = { $meta: 'textScore' }; // default value for search term
         }
     } else {
-        if (match) {
-            aggregate.push({ $match: match });
-        }
         sort = 'title'; // default sort for no search term
     }
 
@@ -258,6 +246,10 @@ const createSearchAggregate = async (
         aggregate.push({ $set: { favorite: { $in: ['$_id', favorites] } } });
     } else {
         aggregate.push({ $set: { favorite: false } });
+    }
+
+    if (match) {
+        aggregate.push({ $match: match });
     }
 
     if (keywords) {
