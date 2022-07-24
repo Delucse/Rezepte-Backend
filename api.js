@@ -31,6 +31,9 @@ router.use('/user', userRouter);
 var titleRouter = require('./routes/title');
 router.use('/title', titleRouter);
 
+var imageRouter = require('./routes/image');
+router.use('/recipe/image', imageRouter);
+
 var recipeRouter = require('./routes/recipe');
 router.use('/recipe', recipeRouter);
 

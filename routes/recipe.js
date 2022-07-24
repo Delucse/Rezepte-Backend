@@ -450,45 +450,4 @@ recipe.get('/:id', getUser, async (req, res) => {
     }
 });
 
-recipe.post('/:recipeId/image', authorization, (req, res) => {
-    upload.single('picture')(req, res, async (err) => {
-        if (err) {
-            if (err.code === 'LIMIT_FILE_SIZE') {
-                // 'File too large'
-                return res.send('Bilder-Datei ist zu groß.');
-            } else {
-                return res.send(err);
-            }
-        } else {
-            try {
-                if (req.file) {
-                    var newPic = new Picture({
-                        contentType: req.file.mimetype,
-                        size: req.file.size,
-                        file: req.file.filename,
-                        user: req.user.id,
-                        recipe: req.params.recipeId,
-                    });
-                    const picture = await newPic.save().then((pic) => pic._id); // return the promise without calling it yet
-                    await Recipe.findByIdAndUpdate(req.params.recipeId, {
-                        $push: { pictures: picture },
-                    });
-                    res.send({
-                        msg: 'added recipe image successfully',
-                        image: {
-                            _id: picture,
-                            file: req.file.filename,
-                            user: req.user.username,
-                        },
-                    });
-                } else {
-                    res.status(400).json({ msg: 'No image' });
-                }
-            } catch (e) {
-                res.status(400).json({ msg: e.message });
-            }
-        }
-    });
-});
-
 module.exports = recipe;
