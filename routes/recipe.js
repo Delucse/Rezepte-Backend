@@ -329,6 +329,21 @@ recipe.get('/', getUser, async (req, res) => {
     }
 });
 
+recipe.get('/basic', getUser, async (req, res) => {
+    try {
+        const match = { keywords: { $regex: 'basic', $options: 'i' } };
+        const aggregate = await createSearchAggregate(
+            req.query,
+            req.user && req.user.id,
+            match
+        );
+        const recipes = await Recipe.aggregate(aggregate);
+        res.send(recipes);
+    } catch (e) {
+        res.status(400).json({ msg: e.message });
+    }
+});
+
 recipe.get('/user', authorization, async (req, res) => {
     try {
         const match = { user: req.user.id };
