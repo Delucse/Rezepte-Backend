@@ -176,7 +176,7 @@ recipe.delete('/:id', authorization, async (req, res) => {
 });
 
 const createSearchAggregate = async (
-    { search, type, keywords, sort, ascending },
+    { search, type, keywords, sort, ascending, limit },
     user,
     match
 ) => {
@@ -298,6 +298,10 @@ const createSearchAggregate = async (
         ascending = -1;
     } else {
         ascending = 1;
+    }
+
+    if (limit && !isNaN(limit)) {
+        aggregate.push({ $limit: Number(limit) });
     }
 
     aggregate.push({ $sort: { [sort]: ascending, _id: ascending } });
