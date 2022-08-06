@@ -1,7 +1,8 @@
 var express = require('express');
 var image = express.Router();
 
-const { upload } = require('../helper/uploadImages');
+const upload = require('../utils/multer');
+const cloudinary = require('../utils/cloudinary');
 const { authorization } = require('../helper/authorization');
 
 const path = require('path');
@@ -22,10 +23,13 @@ image.post('/:recipeId', authorization, (req, res) => {
         } else {
             try {
                 if (req.file) {
+                    const file = await cloudinary.uploader.upload(
+                        req.file.path
+                    );
                     var newPic = new Picture({
                         contentType: req.file.mimetype,
                         size: req.file.size,
-                        file: req.file.filename,
+                        file: file.public_id,
                         user: req.user.id,
                         recipe: req.params.recipeId,
                     });
@@ -98,9 +102,10 @@ image.delete('/:id', authorization, async (req, res) => {
         user: req.user.id,
     });
     if (deletedImage) {
-        const folder = path.join(__dirname, '..', '/public');
+        // const folder = path.join(__dirname, '..', '/public');
         try {
-            fs.unlinkSync(`${folder}/${deletedImage.file}`);
+            await cloudinary.uploader.destroy(deletedImage.file);
+            // fs.unlinkSync(`${folder}/${deletedImage.file}`);
         } catch (err) {
             // images are stored in two different folders: localhost and production
         }

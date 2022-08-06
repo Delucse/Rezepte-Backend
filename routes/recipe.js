@@ -1,7 +1,8 @@
 var express = require('express');
 var recipe = express.Router();
 
-const { upload } = require('../helper/uploadImages');
+const upload = require('../utils/multer');
+const cloudinary = require('../utils/cloudinary');
 const { authorization, getUser } = require('../helper/authorization');
 
 const path = require('path');
@@ -45,11 +46,14 @@ recipe.post('/', authorization, (req, res) => {
                     user: req.user.id,
                 };
                 if (req.files) {
-                    const promises = req.files.map((file) => {
+                    const promises = req.files.map(async (file) => {
+                        const imageFile = await cloudinary.uploader.upload(
+                            file.path
+                        );
                         var newPic = new Picture({
                             contentType: file.mimetype,
                             size: file.size,
-                            file: file.filename,
+                            file: imageFile.public_id,
                             user: req.user.id,
                             recipe: recipeId,
                         });
@@ -100,11 +104,14 @@ recipe.put('/:id', authorization, (req, res) => {
                 };
                 var pictureIds = [];
                 if (req.files) {
-                    const promises = req.files.map((file) => {
+                    const promises = req.files.map(async (file) => {
+                        const imageFile = await cloudinary.uploader.upload(
+                            file.path
+                        );
                         var newPic = new Picture({
                             contentType: file.mimetype,
                             size: file.size,
-                            file: file.filename,
+                            file: imageFile.public_id,
                             user: req.user.id,
                             recipe: req.params.id,
                         });
@@ -121,7 +128,10 @@ recipe.put('/:id', authorization, (req, res) => {
                             user: req.user.id,
                         });
                         if (deletedPicture) {
-                            fs.unlinkSync(`${folder}/${deletedPicture.file}`);
+                            // fs.unlinkSync(`${folder}/${deletedPicture.file}`);
+                            await cloudinary.uploader.destroy(
+                                deletedImage.file
+                            );
                         }
                     });
                 }
@@ -166,7 +176,8 @@ recipe.delete('/:id', authorization, async (req, res) => {
                 user: req.user.id,
             });
             if (deletedPicture) {
-                fs.unlinkSync(`${folder}/${deletedPicture.file}`);
+                // fs.unlinkSync(`${folder}/${deletedPicture.file}`);
+                await cloudinary.uploader.destroy(deletedImage.file);
             }
         });
         res.send({ msg: 'deleted recipe successfully' });

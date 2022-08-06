@@ -7,14 +7,14 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, '..', '/public'));
-    },
-    filename: (req, file, cb) => {
-        var extension = file.originalname.split('.');
-        extension = extension[extension.length - 1];
-        cb(null, uuidv4() + '.' + extension);
-    },
+    // destination: (req, file, cb) => {
+    //     cb(null, path.join(__dirname, '..', '/public'));
+    // },
+    // filename: (req, file, cb) => {
+    //     var extension = file.originalname.split('.');
+    //     extension = extension[extension.length - 1];
+    //     cb(null, uuidv4() + '.' + extension);
+    // },
 });
 
 var upload = multer({
@@ -34,6 +34,4 @@ var upload = multer({
     },
 });
 
-module.exports = {
-    upload,
-};
+module.exports = upload;
