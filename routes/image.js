@@ -41,7 +41,7 @@ image.post('/:recipeId', authorization, (req, res) => {
                         msg: 'added recipe image successfully',
                         image: {
                             _id: picture,
-                            file: req.file.filename,
+                            file: file.public_id,
                             user: req.user.username,
                         },
                     });
