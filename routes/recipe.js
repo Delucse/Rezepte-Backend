@@ -130,7 +130,7 @@ recipe.put('/:id', authorization, (req, res) => {
                         if (deletedPicture) {
                             // fs.unlinkSync(`${folder}/${deletedPicture.file}`);
                             await cloudinary.uploader.destroy(
-                                deletedImage.file
+                                deletedPicture.file
                             );
                         }
                     });
