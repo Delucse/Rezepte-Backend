@@ -24,20 +24,12 @@ recipe.post('/', authorization, (req, res) => {
             }
         } else {
             try {
-                const {
-                    title,
-                    source,
-                    portion,
-                    time,
-                    keywords,
-                    ingredients,
-                    steps,
-                } = req.body;
+                const { title, portion, time, keywords, ingredients, steps } =
+                    req.body;
                 const recipeId = mongoose.Types.ObjectId();
                 var newRecipe = {
                     _id: recipeId,
                     title,
-                    source,
                     portion,
                     time,
                     keywords,
@@ -87,7 +79,6 @@ recipe.put('/:id', authorization, (req, res) => {
             try {
                 var {
                     title,
-                    source,
                     portion,
                     time,
                     keywords,
@@ -98,7 +89,6 @@ recipe.put('/:id', authorization, (req, res) => {
                 } = req.body;
                 var newRecipe = {
                     title,
-                    source,
                     portion,
                     time,
                     keywords,
@@ -461,7 +451,6 @@ recipe.get('/:id', getUser, async (req, res) => {
                 title: 1,
                 user: { $arrayElemAt: ['$user.username', 0] },
                 portion: 1,
-                source: 1,
                 pictures: 1,
                 time: 1,
                 keywords: 1,
