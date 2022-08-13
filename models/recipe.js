@@ -25,7 +25,7 @@ const recipeSchema = mongoose.Schema(
                 type: Number,
                 required: true,
             },
-            volume: {
+            area: {
                 type: Number,
                 required: true,
             },
