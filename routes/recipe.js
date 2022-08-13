@@ -2,11 +2,11 @@ var express = require('express');
 var recipe = express.Router();
 
 const upload = require('../utils/multer');
-const cloudinary = require('../utils/cloudinary');
+const imageKit = require('../utils/imageKit');
 const { authorization, getUser } = require('../helper/authorization');
 
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs').promises;
 
 const mongoose = require('mongoose');
 const Picture = require('../models/picture');
@@ -47,13 +47,16 @@ recipe.post('/', authorization, (req, res) => {
                 };
                 if (req.files) {
                     const promises = req.files.map(async (file) => {
-                        const imageFile = await cloudinary.uploader.upload(
-                            file.path
-                        );
+                        const data = await fs.readFile(file.path);
+                        const imageFile = await imageKit.upload({
+                            file: data,
+                            fileName: file.filename,
+                        });
                         var newPic = new Picture({
+                            _id: imageFile.fileId,
                             contentType: file.mimetype,
                             size: file.size,
-                            file: imageFile.public_id,
+                            file: imageFile.name,
                             user: req.user.id,
                             recipe: recipeId,
                         });
@@ -105,13 +108,16 @@ recipe.put('/:id', authorization, (req, res) => {
                 var pictureIds = [];
                 if (req.files) {
                     const promises = req.files.map(async (file) => {
-                        const imageFile = await cloudinary.uploader.upload(
-                            file.path
-                        );
+                        const data = await fs.readFile(file.path);
+                        const imageFile = await imageKit.upload({
+                            file: data,
+                            fileName: file.filename,
+                        });
                         var newPic = new Picture({
+                            _id: imageFile.fileId,
                             contentType: file.mimetype,
                             size: file.size,
-                            file: imageFile.public_id,
+                            file: imageFile.name,
                             user: req.user.id,
                             recipe: req.params.id,
                         });
@@ -129,9 +135,7 @@ recipe.put('/:id', authorization, (req, res) => {
                         });
                         if (deletedPicture) {
                             // fs.unlinkSync(`${folder}/${deletedPicture.file}`);
-                            await cloudinary.uploader.destroy(
-                                deletedPicture.file
-                            );
+                            await imageKit.deleteFile(deletedPicture._id);
                         }
                     });
                 }
@@ -177,7 +181,7 @@ recipe.delete('/:id', authorization, async (req, res) => {
             });
             if (deletedPicture) {
                 // fs.unlinkSync(`${folder}/${deletedPicture.file}`);
-                await cloudinary.uploader.destroy(deletedImage.file);
+                await imageKit.deleteFile(deletedPicture._id);
             }
         });
         res.send({ msg: 'deleted recipe successfully' });

@@ -2,11 +2,11 @@ var express = require('express');
 var image = express.Router();
 
 const upload = require('../utils/multer');
-const cloudinary = require('../utils/cloudinary');
+const imageKit = require('../utils/imageKit');
 const { authorization } = require('../helper/authorization');
 
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs').promises;
 
 const Picture = require('../models/picture');
 const Recipe = require('../models/recipe');
@@ -23,13 +23,16 @@ image.post('/:recipeId', authorization, (req, res) => {
         } else {
             try {
                 if (req.file) {
-                    const file = await cloudinary.uploader.upload(
-                        req.file.path
-                    );
+                    const data = await fs.readFile(req.file.path);
+                    const file = await imageKit.upload({
+                        file: data,
+                        fileName: req.file.filename,
+                    });
                     var newPic = new Picture({
+                        _id: file.fileId,
                         contentType: req.file.mimetype,
                         size: req.file.size,
-                        file: file.public_id,
+                        file: file.name,
                         user: req.user.id,
                         recipe: req.params.recipeId,
                     });
@@ -41,7 +44,7 @@ image.post('/:recipeId', authorization, (req, res) => {
                         msg: 'added recipe image successfully',
                         image: {
                             _id: picture,
-                            file: file.public_id,
+                            file: file.name,
                             user: req.user.username,
                         },
                     });
@@ -104,7 +107,7 @@ image.delete('/:id', authorization, async (req, res) => {
     if (deletedImage) {
         // const folder = path.join(__dirname, '..', '/public');
         try {
-            await cloudinary.uploader.destroy(deletedImage.file);
+            await imageKit.deleteFile(deletedImage._id);
             // fs.unlinkSync(`${folder}/${deletedImage.file}`);
         } catch (err) {
             // images are stored in two different folders: localhost and production

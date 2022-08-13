@@ -10,11 +10,11 @@ const storage = multer.diskStorage({
     // destination: (req, file, cb) => {
     //     cb(null, path.join(__dirname, '..', '/public'));
     // },
-    // filename: (req, file, cb) => {
-    //     var extension = file.originalname.split('.');
-    //     extension = extension[extension.length - 1];
-    //     cb(null, uuidv4() + '.' + extension);
-    // },
+    filename: (req, file, cb) => {
+        var extension = file.originalname.split('.');
+        extension = extension[extension.length - 1];
+        cb(null, uuidv4() + '.' + extension);
+    },
 });
 
 var upload = multer({
