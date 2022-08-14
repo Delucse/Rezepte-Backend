@@ -240,8 +240,10 @@ const createSearchAggregate = async (
             aggregate.push({ $match: { $text: { $search: search } } });
             score = { $meta: 'textScore' }; // default value for search term
         }
-    } else {
-        sort = 'title'; // default sort for no search term
+    } else if (sort === 'score') {
+        // default sort for no search term and sort = score
+        sort = 'title';
+        ascending = true;
     }
 
     if (user) {
@@ -290,26 +292,36 @@ const createSearchAggregate = async (
         },
     }); // populate('pictures', 'file');
 
-    if (sort) {
-        if (sort === 'title') {
-            sort = 'lowerTitle';
-            aggregate.push({ $set: { lowerTitle: { $toLower: '$title' } } }); // collation does also the trick
-        }
-    } else {
-        sort = 'score'; // default value
-    }
-
     if (ascending && ascending === 'false') {
         ascending = -1;
     } else {
         ascending = 1;
     }
 
+    switch (sort) {
+        case 'score':
+            sort = { score: { $meta: 'textScore' } };
+            break;
+        case 'title':
+            aggregate.push({ $set: { lowerTitle: { $toLower: '$title' } } }); // collation does also the trick
+            sort = { lowerTitle: ascending };
+            break;
+        case 'time':
+            sort = { time: ascending };
+            break;
+        case 'date':
+            sort = { createdAt: ascending };
+            break;
+        default:
+            sort = { score: { $meta: 'textScore' } };
+    }
+
+    aggregate.push({ $sort: { ...sort, _id: ascending } });
+
     if (limit && !isNaN(limit)) {
         aggregate.push({ $limit: Number(limit) });
     }
 
-    aggregate.push({ $sort: { [sort]: ascending, _id: ascending } });
     aggregate.push({
         $project: {
             title: 1,
