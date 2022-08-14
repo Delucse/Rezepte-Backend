@@ -217,7 +217,17 @@ const createSearchAggregate = async (
                     },
                 });
             } else if (type === 'steps') {
-                aggregate.push({ $unwind: '$steps' });
+                aggregate.push({
+                    $set: {
+                        steps: {
+                            $reduce: {
+                                input: '$steps',
+                                initialValue: '',
+                                in: { $concat: ['$$value', '$$this'] },
+                            },
+                        },
+                    },
+                });
             }
             search = search
                 .replaceAll(/(\s*(,|;)\s*|\s+)/gi, ' ')
