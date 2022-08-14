@@ -300,7 +300,11 @@ const createSearchAggregate = async (
 
     switch (sort) {
         case 'score':
-            sort = { score: { $meta: 'textScore' } };
+            if (type !== 'all') {
+                sort = { score: ascending };
+            } else {
+                sort = { score: { $meta: 'textScore' } };
+            }
             break;
         case 'title':
             aggregate.push({ $set: { lowerTitle: { $toLower: '$title' } } }); // collation does also the trick
@@ -313,7 +317,11 @@ const createSearchAggregate = async (
             sort = { createdAt: ascending };
             break;
         default:
-            sort = { score: { $meta: 'textScore' } };
+            if (type !== 'all') {
+                sort = { score: ascending };
+            } else {
+                sort = { score: { $meta: 'textScore' } };
+            }
     }
 
     aggregate.push({ $sort: { ...sort, _id: ascending } });
