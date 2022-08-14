@@ -51,7 +51,7 @@ const recipeSchema = mongoose.Schema(
                 _id: false,
                 title: {
                     type: String,
-                    required: true,
+                    required: false,
                 },
                 food: [
                     {
