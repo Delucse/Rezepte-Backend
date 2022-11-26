@@ -21,10 +21,11 @@ const recipeSchema = mongoose.Schema(
                 type: Number,
                 required: true,
             },
-            area: {
-                type: Number,
-                required: true,
-            },
+            form: [
+                {
+                    type: Number,
+                },
+            ],
         },
         time: {
             preparation: {
