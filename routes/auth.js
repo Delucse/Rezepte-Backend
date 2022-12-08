@@ -18,9 +18,13 @@ const {
 api.post('/signup', async (req, res) => {
     try {
         // checking if user is already in db
-        const emailExists = await User.findOne({ email: req.body.email });
-        if (emailExists)
-            return res.status(409).send({ message: 'Email already exists' });
+        if (req.body.email) {
+            const emailExists = await User.findOne({ email: req.body.email });
+            if (emailExists)
+                return res
+                    .status(409)
+                    .send({ message: 'Email already exists' });
+        }
         const usernameExists = await User.findOne({
             username: req.body.username,
         });
@@ -124,12 +128,10 @@ api.post('/refresh', async (req, res) => {
             RefreshToken.findByIdAndRemove(refreshToken._id, {
                 useFindAndModify: false,
             }).exec();
-            return res
-                .status(403)
-                .json({
-                    message:
-                        'Refresh token was expired. Please make a new signin request',
-                });
+            return res.status(403).json({
+                message:
+                    'Refresh token was expired. Please make a new signin request',
+            });
         }
 
         // create JWT-Token and refresh-Token
