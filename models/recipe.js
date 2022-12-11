@@ -106,6 +106,14 @@ recipeSchema.index(
     }
 );
 
+// prevent an empty array from being stored
+recipeSchema.pre('save', function (next) {
+    if (this.portion.form && this.portion.form.length === 0) {
+        this.portion.form = undefined;
+    }
+    next();
+});
+
 const Recipe = mongoose.model('Recipe', recipeSchema);
 
 Recipe.createIndexes();
