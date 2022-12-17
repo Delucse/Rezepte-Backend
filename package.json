@@ -8,25 +8,25 @@
     },
     "dependencies": {
         "bcryptjs": "^2.4.3",
-        "chalk": "^4.1.0",
+        "chalk": "^4.1.2",
         "cors": "^2.8.5",
         "debug": "~2.6.9",
-        "dotenv": "^16.0.0",
+        "dotenv": "^16.0.3",
         "express": "~4.16.1",
         "http-errors": "~1.6.3",
-        "imagekit": "^4.1.1",
+        "imagekit": "^4.1.2",
         "jsonwebtoken": "^8.5.1",
-        "moment": "^2.29.3",
-        "mongoose": "^6.2.9",
+        "moment": "^2.29.4",
+        "mongoose": "^6.8.0",
         "morgan": "~1.9.1",
         "multer": "^1.4.4",
         "uuid": "^8.3.2"
     },
     "devDependencies": {
-        "nodemon": "^2.0.15"
+        "nodemon": "^2.0.20"
     },
     "engines": {
-        "npm": ">=8.5.5",
-        "node": ">=16.13.2"
+        "npm": ">=9.2.0",
+        "node": ">=18.12.1"
     }
 }
