@@ -28,9 +28,6 @@ router.use('/auth', authRouter);
 var userRouter = require('./routes/user');
 router.use('/user', userRouter);
 
-var titleRouter = require('./routes/title');
-router.use('/title', titleRouter);
-
 var imageRouter = require('./routes/image');
 router.use('/recipe/image', imageRouter);
 

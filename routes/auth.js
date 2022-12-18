@@ -15,16 +15,16 @@ const {
     invalidateToken,
 } = require('../helper/authorization');
 
+const { send, email } = require('../utils/emailTransporter');
+
+const verifyEmail = require('../templates/verifyEmail');
+
 api.post('/signup', async (req, res) => {
     try {
         // checking if user is already in db
-        if (req.body.email) {
-            const emailExists = await User.findOne({ email: req.body.email });
-            if (emailExists)
-                return res
-                    .status(409)
-                    .send({ message: 'Email already exists' });
-        }
+        const emailExists = await User.findOne({ email: req.body.email });
+        if (emailExists)
+            return res.status(409).send({ message: 'Email already exists' });
         const usernameExists = await User.findOne({
             username: req.body.username,
         });
@@ -41,8 +41,61 @@ api.post('/signup', async (req, res) => {
             password: hashedPassword,
         });
 
+        const token = jwt.sign(
+            { id: user._id },
+            process.env.VERIFY_TOKEN_SECRET,
+            {
+                expiresIn: Number(process.env.VERIFY_TOKEN_EXPIRATION),
+            }
+        );
+
         const savedUser = await user.save();
+
+        send(
+            email(
+                savedUser.email,
+                'E-Mail verifizieren',
+                verifyEmail(savedUser.username, token)
+            )
+        );
+
         res.status(200).json({ message: 'User was registered successfully!' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+api.post('/verification', async (req, res) => {
+    try {
+        const { token } = req.body;
+        if (!token)
+            return res.status(403).send({ message: 'Token is missing.' });
+
+        jwt.verify(
+            token,
+            process.env.VERIFY_TOKEN_SECRET,
+            async (err, decoded) => {
+                if (err) {
+                    return res
+                        .status(403)
+                        .json({ message: 'Token is not valid.' });
+                }
+
+                const user = await User.findOneAndUpdate(
+                    { _id: decoded.id },
+                    { verification: true }
+                );
+
+                if (!user)
+                    return res
+                        .status(403)
+                        .json({ message: 'Token is not valid.' });
+
+                res.status(200).json({
+                    message: 'User was verified successfully!',
+                });
+            }
+        );
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -55,7 +108,10 @@ api.post('/signin', async (req, res) => {
         if (!user)
             return res
                 .status(403)
-                .send({ message: 'Username or password is wrong' });
+                .send({ message: 'Username or password is wrong.' });
+
+        if (!user.verification)
+            return res.status(403).send({ message: 'User is not verified.' });
 
         // checking if password is correct
         const validPassword = await bcrypt.compare(
@@ -65,7 +121,7 @@ api.post('/signin', async (req, res) => {
         if (!validPassword)
             return res
                 .status(403)
-                .send({ message: 'Username or password is wrong' });
+                .send({ message: 'Username or password is wrong.' });
 
         // create JWT-Token and refresh-Token
         const { token: token, refreshToken: refreshToken } = await createToken(
