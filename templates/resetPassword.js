@@ -26,14 +26,14 @@ const sToReadableTime = (time) => {
 
 const time = sToReadableTime(process.env.VERIFY_TOKEN_EXPIRATION);
 
-module.exports = verifyEmail = (name, token) => {
+module.exports = verifyEmail = (name, token, id) => {
     return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="x-apple-disable-message-reformatting">
-  <title>E-Mail verifizieren</title>
+  <title>Passwort zurücksetzen</title>
   <!--[if mso]>
   <style>
     table {border-collapse:collapse;border-spacing:0;border:none;margin:0;}
@@ -94,9 +94,9 @@ module.exports = verifyEmail = (name, token) => {
             </tr>
             <tr>
               <td style="padding:30px 30px 15px 30px;background-color:#ffffff;">
-                <h1 style="margin-top:0;margin-bottom:18px;font-size:26px;line-height:32px;font-weight:bold;letter-spacing:-0.02em;">Willkommen</h1>
-                <p style="margin-top:0;margin-bottom:18px;">Hallo ${name},<br/>wir freuen uns, dass du dich für Delucse registriert hast. Um die Rezepte-Welt uneingeschränkt  nutzen zu können, bestätige bitte deine E-Mail-Adresse.</p>
-                <p style="margin:0;"><a href="${url}/verifizierung/${token}" style="background: #e85917; text-decoration: none; padding: 10px 25px; color: #ffffff; border-radius: 0px; display:inline-block; mso-padding-alt:0;text-underline-color:#ff3884"><!--[if mso]><i style="letter-spacing: 25px;mso-font-width:-100%;mso-text-raise:20pt">&nbsp;</i><![endif]--><span style="mso-text-raise:10pt;font-weight:bold;">E-Mail verifizieren</span><!--[if mso]><i style="letter-spacing: 25px;mso-font-width:-100%">&nbsp;</i><![endif]--></a></p>
+                <h1 style="margin-top:0;margin-bottom:18px;font-size:26px;line-height:32px;font-weight:bold;letter-spacing:-0.02em;">Passwort zurücksetzen</h1>
+                <p style="margin-top:0;margin-bottom:18px;">Hallo ${name},<br/>wir haben gehört, dass du dein Passwort vergessen hast. Kein Grund zur Sorge! Du kannst den folgenden Button benutzen, um dein Passwort zurückzusetzen.</p>
+                <p style="margin:0;"><a href="${url}/passwort/${id}/${token}" style="background: #e85917; text-decoration: none; padding: 10px 25px; color: #ffffff; border-radius: 0px; display:inline-block; mso-padding-alt:0;text-underline-color:#ff3884"><!--[if mso]><i style="letter-spacing: 25px;mso-font-width:-100%;mso-text-raise:20pt">&nbsp;</i><![endif]--><span style="mso-text-raise:10pt;font-weight:bold;">Passwort zurücksetzen</span><!--[if mso]><i style="letter-spacing: 25px;mso-font-width:-100%">&nbsp;</i><![endif]--></a></p>
               </td>
             </tr>
             <tr>
@@ -107,12 +107,12 @@ module.exports = verifyEmail = (name, token) => {
                 <td style="width:395px;" align="left" valign="top">
                 <![endif]-->
                 <div class="col-lge" style="display:inline-block;width:100%;max-width:395px;vertical-align:top;padding-bottom:20px; font-family:Arial,sans-serif;font-size:16px;line-height:22px;color:#363636;">
-                  <p style="margin-top:0;margin-bottom:18px;">Sollte der Button nicht funktionieren, bite einfach diesen Link <a href="${url}/verifizierung/${token}" style="color:#e85917;text-decoration:underline;">${`${url}/verifizierung/${token}`
+                  <p style="margin-top:0;margin-bottom:18px;">Sollte der Button nicht funktionieren, bite einfach diesen Link <a href="${url}/passwort/${id}/${token}" style="color:#e85917;text-decoration:underline;">${`${url}/passwort/${id}/${token}`
         .split('')
         .map((s) => s + '&#8203;')
         .join(
             ''
-        )}</a> in die Adresszeile deines Browsers einfügen. Der Aktivierungslink ist ${time} lang gültig. Nach Ablauf der Zeit musst du dich <a href="${url}/registrierung" style="color:#e85917;text-decoration:underline;">hier</a> noch einmal neu registrieren.</p>
+        )}</a> in die Adresszeile deines Browsers einfügen. Der Zurücksetzungslink ist ${time} lang gültig. Nach Ablauf der Zeit musst du <a href="${url}/passwort" style="color:#e85917;text-decoration:underline;">hier</a> erneut deine E-Mail angeben, um dein Passwort zurücksetzen zu können.</p>
                   <p style="margin-top:0;margin-bottom:10px;">Viel Spaß beim Kochen!</p>
                 </div>
                 <!--[if mso]>
