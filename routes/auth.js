@@ -19,17 +19,20 @@ const { send, email } = require('../utils/emailTransporter');
 
 const verifyEmail = require('../templates/verifyEmail');
 
-api.post('/signup', async (req, res) => {
+const validate = require('../validators/index');
+const { signup, verification, signin, signout } = require('../validators/auth');
+
+api.post('/signup', signup, validate, async (req, res) => {
     try {
         // checking if user is already in db
         const emailExists = await User.findOne({ email: req.body.email });
         if (emailExists)
-            return res.status(409).send({ message: 'Email already exists' });
+            return res.status(409).send({ message: 'email already exists' });
         const usernameExists = await User.findOne({
             username: req.body.username,
         });
         if (usernameExists)
-            return res.status(409).send({ message: 'Username already exists' });
+            return res.status(409).send({ message: 'username already exists' });
 
         // hash password
         const salt = await bcrypt.genSalt(10);
@@ -59,17 +62,15 @@ api.post('/signup', async (req, res) => {
             )
         );
 
-        res.status(200).json({ message: 'User was registered successfully!' });
+        res.status(200).json({ message: 'user is registered' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
 
-api.post('/verification', async (req, res) => {
+api.post('/verification', verification, validate, async (req, res) => {
     try {
         const { token } = req.body;
-        if (!token)
-            return res.status(403).send({ message: 'Token is missing.' });
 
         jwt.verify(
             token,
@@ -78,7 +79,7 @@ api.post('/verification', async (req, res) => {
                 if (err) {
                     return res
                         .status(403)
-                        .json({ message: 'Token is not valid.' });
+                        .json({ message: 'token is not valid' });
                 }
 
                 const user = await User.findOneAndUpdate(
@@ -89,10 +90,10 @@ api.post('/verification', async (req, res) => {
                 if (!user)
                     return res
                         .status(403)
-                        .json({ message: 'Token is not valid.' });
+                        .json({ message: 'token is not valid' });
 
                 res.status(200).json({
-                    message: 'User was verified successfully!',
+                    message: 'user is verified',
                 });
             }
         );
@@ -101,17 +102,17 @@ api.post('/verification', async (req, res) => {
     }
 });
 
-api.post('/signin', async (req, res) => {
+api.post('/signin', signin, validate, async (req, res) => {
     try {
         // checking if username exists
         const user = await User.findOne({ username: req.body.username });
         if (!user)
             return res
                 .status(403)
-                .send({ message: 'Username or password is wrong.' });
+                .send({ message: 'username or password is wrong.' });
 
         if (!user.verification)
-            return res.status(403).send({ message: 'User is not verified.' });
+            return res.status(403).send({ message: 'user is not verified.' });
 
         // checking if password is correct
         const validPassword = await bcrypt.compare(
@@ -121,7 +122,7 @@ api.post('/signin', async (req, res) => {
         if (!validPassword)
             return res
                 .status(403)
-                .send({ message: 'Username or password is wrong.' });
+                .send({ message: 'username or password is wrong.' });
 
         // create JWT-Token and refresh-Token
         const { token: token, refreshToken: refreshToken } = await createToken(
@@ -138,7 +139,7 @@ api.post('/signin', async (req, res) => {
     }
 });
 
-api.post('/signout', authorization, async (req, res) => {
+api.post('/signout', authorization, signout, validate, async (req, res) => {
     const rawAuthorizationHeader = req.header('authorization');
     const [, token] = rawAuthorizationHeader.split(' ');
     try {
@@ -150,20 +151,18 @@ api.post('/signout', authorization, async (req, res) => {
             if (deleteToken.deletedCount > 0) {
                 // invalidate JWT
                 await invalidateToken(token);
-                return res
-                    .status(200)
-                    .json({ message: 'Signed out successfully.' });
+                return res.status(200).json({ message: 'signed out' });
             } else {
                 return res
                     .status(401)
-                    .json({ message: 'Refresh Token does not exist.' });
+                    .json({ message: 'refresh token does not exist' });
             }
         } else {
             // invalidate JWT
             await invalidateToken(token);
             RefreshToken.deleteMany({ user: req.user.id }).exec();
         }
-        res.status(200).json({ message: 'Signed out successfully.' });
+        res.status(200).json({ message: 'signed out' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -173,12 +172,12 @@ api.post('/refresh', async (req, res) => {
     try {
         const { token: requestToken } = req.body;
         if (requestToken == null)
-            return res.status(403).json({ message: 'Unauthorized' });
+            return res.status(403).json({ message: 'unauthorized' });
         const refreshToken = await RefreshToken.findOne({
             token: requestToken,
         });
         if (!refreshToken)
-            return res.status(403).json({ message: 'Unauthorized' });
+            return res.status(403).json({ message: 'unauthorized' });
 
         if (RefreshToken.verifyExpiration(refreshToken)) {
             RefreshToken.findByIdAndRemove(refreshToken._id, {
@@ -186,7 +185,7 @@ api.post('/refresh', async (req, res) => {
             }).exec();
             return res.status(403).json({
                 message:
-                    'Refresh token was expired. Please make a new signin request',
+                    'refresh token expired, please make a new signin request',
             });
         }
 

@@ -11,7 +11,10 @@ const { authorization } = require('../helper/authorization');
 
 const { send, email } = require('../utils/emailTransporter');
 
-const resetPassword = require('../templates/resetPassword');
+const queryNewPassword = require('../templates/resetPassword');
+
+const validate = require('../validators/index');
+const { resetPassword, setPassword } = require('../validators/user');
 
 api.get('/', authorization, async (req, res) => {
     try {
@@ -26,15 +29,16 @@ api.get('/', authorization, async (req, res) => {
     }
 });
 
-api.post('/password', async (req, res) => {
+api.post('/password', resetPassword, validate, async (req, res) => {
     try {
-        const { username } = req.body;
-
         // checking if user is in db
-        const user = await User.findOne({ username: username });
+        const user = await User.findOne({
+            username: req.body.username,
+            verification: true,
+        });
         if (!user)
             return res.status(200).send({
-                message: 'if username exists an email was successfully sent.',
+                message: 'if username exists, then an email was sent',
             });
 
         const token = jwt.sign(
@@ -49,58 +53,49 @@ api.post('/password', async (req, res) => {
             email(
                 user.email,
                 'Passwort zurücksetzen',
-                resetPassword(user.username, token, user._id)
+                queryNewPassword(user.username, token, user._id)
             )
         );
 
         res.status(200).json({
-            message: 'if username exists an email was successfully sent.',
+            message: 'if user exists, then an email was sent',
         });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
 
-api.put('/password/:id', async (req, res) => {
+api.put('/password/:id', setPassword, validate, async (req, res) => {
     try {
-        const { password, confirmPassword, token } = req.body;
-        const { id } = req.params;
-
-        if (!password || password === '' || password !== confirmPassword)
-            return res.status(403).json({ message: 'Passwords do not match.' });
-
-        if (!token)
-            return res.status(403).send({ message: 'Token is missing.' });
-
-        if (!/^.{24}$/.test(id))
-            return res.status(403).json({ message: 'Invalid user' });
-
-        const user = await User.findById(id);
-        if (!user) return res.status(403).json({ message: 'Invalid user' });
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(403).json({ message: 'invalid user' });
 
         jwt.verify(
-            token,
+            req.body.token,
             process.env.VERIFY_TOKEN_EXPIRATION + user.password,
             async (err, decoded) => {
                 if (err) {
                     return res
                         .status(403)
-                        .json({ message: 'Token is not valid.' });
+                        .json({ message: 'token is not valid' });
                 }
                 if (decoded.id !== user._id.toHexString())
-                    return res.status(403).json({ message: 'Invalid user' });
+                    return res.status(403).json({ message: 'invalid user' });
 
                 // hash password
                 const salt = await bcrypt.genSalt(10);
-                const hashedPassword = await bcrypt.hash(password, salt);
+                const hashedPassword = await bcrypt.hash(
+                    req.body.password,
+                    salt
+                );
 
-                const updatedUser = await User.findOneAndUpdate(
+                await User.findOneAndUpdate(
                     { _id: decoded.id },
                     { password: hashedPassword }
                 );
 
                 res.status(200).json({
-                    message: 'Password was changed successfully!',
+                    message: 'password changed',
                 });
             }
         );

@@ -10,9 +10,9 @@ const { TokenExpiredError } = jwt;
 
 const catchError = (err, res) => {
     if (err instanceof TokenExpiredError) {
-        return res.status(401).send({ message: 'Unauthorized' });
+        return res.status(401).send({ message: 'unauthorized' });
     }
-    return res.sendStatus(401).send({ message: 'Unauthorized' });
+    return res.sendStatus(401).send({ message: 'unauthorized' });
 };
 
 const authorization = (req, res, next) => {
@@ -24,21 +24,21 @@ const authorization = (req, res, next) => {
     }
 
     if (!token) {
-        return res.status(401).json({ message: 'Unauthorized' });
+        return res.status(401).json({ message: 'unauthorized' });
     }
 
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
         if (err) {
             // return catchError(err, res);
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(401).json({ message: 'unauthorized' });
         }
         var invalid = await TokenBlacklist.findOne({ token: token });
         if (invalid) {
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(401).json({ message: 'unauthorized' });
         }
         var user = await User.findById(decoded.id);
         if (!user) {
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(401).json({ message: 'unauthorized' });
         }
         req.user = {
             id: user._id,

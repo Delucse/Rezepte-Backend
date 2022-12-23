@@ -26,7 +26,7 @@ const sToReadableTime = (time) => {
 
 const time = sToReadableTime(process.env.VERIFY_TOKEN_EXPIRATION);
 
-module.exports = verifyEmail = (name, token, id) => {
+module.exports = resetPassword = (name, token, id) => {
     return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
