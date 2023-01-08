@@ -39,19 +39,30 @@ recipe.post('/', authorization, (req, res) => {
                 };
                 if (req.files) {
                     const promises = req.files.map(async (file) => {
-                        const data = await fs.readFile(file.path);
-                        const imageFile = await imageKit.upload({
-                            file: data,
-                            fileName: file.filename,
-                        });
-                        var newPic = new Picture({
-                            _id: imageFile.fileId,
-                            contentType: file.mimetype,
-                            size: file.size,
-                            file: imageFile.name,
-                            user: req.user.id,
-                            recipe: recipeId,
-                        });
+                        var newPic;
+                        if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                            const data = await fs.readFile(file.path);
+                            const imageFile = await imageKit.upload({
+                                file: data,
+                                fileName: file.filename,
+                            });
+                            newPic = new Picture({
+                                _id: imageFile.fileId,
+                                contentType: file.mimetype,
+                                size: file.size,
+                                file: imageFile.name,
+                                user: req.user.id,
+                                recipe: recipeId,
+                            });
+                        } else {
+                            newPic = new Picture({
+                                contentType: file.mimetype,
+                                size: file.size,
+                                file: file.filename,
+                                user: req.user.id,
+                                recipe: recipeId,
+                            });
+                        }
                         return newPic.save().then((pic) => pic._id); // return the promise without calling it yet
                     });
                     const pictures = await Promise.all(promises);
@@ -98,19 +109,30 @@ recipe.put('/:id', authorization, (req, res) => {
                 var pictureIds = [];
                 if (req.files) {
                     const promises = req.files.map(async (file) => {
-                        const data = await fs.readFile(file.path);
-                        const imageFile = await imageKit.upload({
-                            file: data,
-                            fileName: file.filename,
-                        });
-                        var newPic = new Picture({
-                            _id: imageFile.fileId,
-                            contentType: file.mimetype,
-                            size: file.size,
-                            file: imageFile.name,
-                            user: req.user.id,
-                            recipe: req.params.id,
-                        });
+                        var newPic;
+                        if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                            const data = await fs.readFile(file.path);
+                            const imageFile = await imageKit.upload({
+                                file: data,
+                                fileName: file.filename,
+                            });
+                            var newPic = new Picture({
+                                _id: imageFile.fileId,
+                                contentType: file.mimetype,
+                                size: file.size,
+                                file: imageFile.name,
+                                user: req.user.id,
+                                recipe: req.params.id,
+                            });
+                        } else {
+                            newPic = new Picture({
+                                contentType: file.mimetype,
+                                size: file.size,
+                                file: file.filename,
+                                user: req.user.id,
+                                recipe: req.params.id,
+                            });
+                        }
                         return newPic.save().then((pic) => pic._id); // return the promise without calling it yet
                     });
                     const pictures = await Promise.all(promises);
@@ -124,8 +146,13 @@ recipe.put('/:id', authorization, (req, res) => {
                             user: req.user.id,
                         });
                         if (deletedPicture) {
-                            // fs.unlinkSync(`${folder}/${deletedPicture.file}`);
-                            await imageKit.deleteFile(deletedPicture._id);
+                            if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                                await imageKit.deleteFile(deletedPicture._id);
+                            } else {
+                                await fs.unlink(
+                                    `${folder}/${deletedPicture.file}`
+                                );
+                            }
                         }
                     });
                 }
@@ -170,8 +197,11 @@ recipe.delete('/:id', authorization, async (req, res) => {
                 user: req.user.id,
             });
             if (deletedPicture) {
-                // fs.unlinkSync(`${folder}/${deletedPicture.file}`);
-                await imageKit.deleteFile(deletedPicture._id);
+                if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                    await imageKit.deleteFile(deletedPicture._id);
+                } else {
+                    await fs.unlink(`${folder}/${deletedPicture.file}`);
+                }
             }
         });
         res.send({ msg: 'deleted recipe successfully' });

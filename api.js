@@ -15,7 +15,9 @@ api.use(cors());
 
 api.use(bodyParser.json({ limit: '10mb', extended: true }));
 
-// api.use('/media', express.static(path.join(__dirname, 'public')));
+if (!process.env.IMAGEKIT_PUBLIC_KEY) {
+    api.use('/media', express.static(path.join(__dirname, 'public')));
+}
 
 var router = express.Router();
 
@@ -37,7 +39,7 @@ router.use('/recipe', recipeRouter);
 var favoriteRouter = require('./routes/favorite');
 router.use('/recipe/favorite', favoriteRouter);
 
-api.use('/', router);
+api.use(`/${process.env.MONGODB_URI ? '' : 'api'}`, router);
 
 // catch 404 and forward to error handler
 api.use(function (req, res, next) {
