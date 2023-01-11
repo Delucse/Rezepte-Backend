@@ -13,33 +13,42 @@ require('dotenv').config();
 api.use(logger('dev'));
 api.use(cors());
 
+api.set('views', './views');
+api.set('view engine', 'hbs');
+
 api.use(bodyParser.json({ limit: '10mb', extended: true }));
 
 if (!process.env.IMAGEKIT_PUBLIC_KEY) {
     api.use('/media', express.static(path.join(__dirname, 'public')));
 }
 
-var router = express.Router();
+var apiRouter = express.Router();
+var shareRouter = express.Router();
 
 var indexRouter = require('./routes/index');
-router.use('/', indexRouter);
+apiRouter.use('/', indexRouter);
 
 var authRouter = require('./routes/auth');
-router.use('/auth', authRouter);
+apiRouter.use('/auth', authRouter);
 
 var userRouter = require('./routes/user');
-router.use('/user', userRouter);
+apiRouter.use('/user', userRouter);
 
 var imageRouter = require('./routes/image');
-router.use('/recipe/image', imageRouter);
+apiRouter.use('/recipe/image', imageRouter);
 
 var recipeRouter = require('./routes/recipe');
-router.use('/recipe', recipeRouter);
+apiRouter.use('/recipe', recipeRouter);
 
 var favoriteRouter = require('./routes/favorite');
-router.use('/recipe/favorite', favoriteRouter);
+apiRouter.use('/recipe/favorite', favoriteRouter);
 
-api.use(`/${process.env.MONGODB_URI ? '' : 'api'}`, router);
+api.use(`/${process.env.MONGODB_URI ? '' : 'api'}`, apiRouter);
+
+var sRouter = require('./routes/share');
+shareRouter.use('/r', sRouter);
+
+api.use('/share', shareRouter);
 
 // catch 404 and forward to error handler
 api.use(function (req, res, next) {
