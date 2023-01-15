@@ -12,6 +12,7 @@ const mongoose = require('mongoose');
 const Picture = require('../models/picture');
 const Recipe = require('../models/recipe');
 const User = require('../models/user');
+const RecipeUser = require('../models/recipeUser');
 
 recipe.post('/', authorization, (req, res) => {
     upload.array('pictures')(req, res, async (err) => {
@@ -204,6 +205,10 @@ recipe.delete('/:id', authorization, async (req, res) => {
                 }
             }
         });
+        const info = await RecipeUser.findOneAndRemove({
+            recipe: req.params.id,
+            user: req.user.id,
+        });
         res.send({ msg: 'deleted recipe successfully' });
     } else {
         res.status(400).json({ msg: 'user does not match.' });
@@ -287,9 +292,10 @@ const createSearchAggregate = async (
     }
 
     if (user) {
-        const favorites = await User.findById(user).then(
-            (res) => res.favorites
-        );
+        const favorites = await RecipeUser.find({
+            user: user,
+            favorite: true,
+        }).then((res) => res.map((f) => f.recipe));
         aggregate.push({ $set: { favorite: { $in: ['$_id', favorites] } } });
     } else {
         aggregate.push({ $set: { favorite: false } });
@@ -392,7 +398,7 @@ recipe.get('/', getUser, async (req, res) => {
             req.user && req.user.id
         );
         const recipes = await Recipe.aggregate(aggregate);
-        res.send(recipes);
+        res.status(200).send(recipes);
     } catch (e) {
         res.status(400).json({ msg: e.message });
     }
@@ -465,14 +471,16 @@ recipe.get('/:id', getUser, async (req, res) => {
             $match: { _id: mongoose.Types.ObjectId(req.params.id) },
         });
         if (req.user) {
-            const favorites = await User.findById(req.user.id).then(
-                (res) => res.favorites
-            );
-            aggregate.push({
-                $set: { favorite: { $in: ['$_id', favorites] } },
+            const info = await RecipeUser.findOne({
+                user: req.user.id,
+                recipe: req.params.id,
             });
-        } else {
-            aggregate.push({ $set: { favorite: false } });
+            aggregate.push({
+                $set: { favorite: info.favorite },
+            });
+            aggregate.push({
+                $set: { note: info.note },
+            });
         }
         aggregate.push({
             $lookup: {
@@ -521,20 +529,24 @@ recipe.get('/:id', getUser, async (req, res) => {
                 as: 'pictures',
             },
         });
+        const project = {
+            title: 1,
+            user: { $arrayElemAt: ['$user.username', 0] },
+            portion: 1,
+            pictures: 1,
+            time: 1,
+            keywords: 1,
+            ingredients: 1,
+            steps: 1,
+            updates: 1,
+            date: '$createdAt',
+        };
+        if (req.user) {
+            project.favorite = 1;
+            project.note = 1;
+        }
         aggregate.push({
-            $project: {
-                title: 1,
-                user: { $arrayElemAt: ['$user.username', 0] },
-                portion: 1,
-                pictures: 1,
-                time: 1,
-                keywords: 1,
-                ingredients: 1,
-                steps: 1,
-                updates: 1,
-                favorite: 1,
-                date: '$createdAt',
-            },
+            $project: project,
         });
 
         const recipe = await Recipe.aggregate(aggregate);
