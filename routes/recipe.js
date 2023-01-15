@@ -476,10 +476,10 @@ recipe.get('/:id', getUser, async (req, res) => {
                 recipe: req.params.id,
             });
             aggregate.push({
-                $set: { favorite: info.favorite },
+                $set: { favorite: info ? info.favorite : false },
             });
             aggregate.push({
-                $set: { note: info.note },
+                $set: { note: info ? info.note : '' },
             });
         }
         aggregate.push({
