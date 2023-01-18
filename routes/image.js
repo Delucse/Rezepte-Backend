@@ -72,35 +72,32 @@ image.post('/:recipeId', authorization, (req, res) => {
 image.get('/', authorization, async (req, res) => {
     try {
         const image = await Picture.aggregate([
-            {
-                $match: { user: req.user.id },
-            },
+            { $match: { user: req.user.id } },
             {
                 $lookup: {
                     from: 'recipes',
                     localField: 'recipe',
                     foreignField: '_id',
-                    let: { imageId: '$$ROOT._id' },
-                    pipeline: [
-                        {
-                            $project: {
-                                _id: 1,
-                                title: 1,
-                                index: {
-                                    $indexOfArray: ['$pictures', '$$imageId'],
-                                },
-                            },
-                        },
-                    ],
                     as: 'recipe',
                 },
             },
-            { $sort: { 'recipe.title': 1, 'recipe.index': 1 } },
+            { $addFields: { recipe: { $first: '$recipe' } } },
+            {
+                $set: {
+                    index: {
+                        $indexOfArray: ['$recipe.pictures', '$$ROOT._id'],
+                    },
+                },
+            },
+            { $sort: { 'recipe.title': 1, index: 1 } },
             {
                 $project: {
                     _id: 1,
                     file: 1,
-                    recipe: { $arrayElemAt: ['$recipe', 0] },
+                    recipe: {
+                        _id: 1,
+                        title: 1,
+                    },
                 },
             },
         ]);

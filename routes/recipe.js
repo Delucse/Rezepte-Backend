@@ -485,12 +485,18 @@ recipe.get('/:id', getUser, async (req, res) => {
         aggregate.push({
             $lookup: {
                 from: 'users',
-                localField: 'user',
-                foreignField: '_id',
-                pipeline: [{ $project: { _id: 0, username: 1 } }],
+                let: { user: '$user' },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: { $eq: ['$_id', '$$user'] },
+                        },
+                    },
+                    { $project: { _id: 0, username: 1 } },
+                ],
                 as: 'user',
             },
-        }); // populate('pictures', 'file');
+        });
         aggregate.push({
             $lookup: {
                 from: 'pictures',
@@ -512,9 +518,15 @@ recipe.get('/:id', getUser, async (req, res) => {
                     {
                         $lookup: {
                             from: 'users',
-                            localField: 'user',
-                            foreignField: '_id',
-                            pipeline: [{ $project: { _id: 0, username: 1 } }],
+                            let: { user: '$user' },
+                            pipeline: [
+                                {
+                                    $match: {
+                                        $expr: { $eq: ['$_id', '$$user'] },
+                                    },
+                                },
+                                { $project: { _id: 0, username: 1 } },
+                            ],
                             as: 'user',
                         },
                     },
