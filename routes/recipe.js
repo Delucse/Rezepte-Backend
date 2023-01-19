@@ -216,7 +216,7 @@ recipe.delete('/:id', authorization, async (req, res) => {
 });
 
 const createSearchAggregate = async (
-    { search, type, keywords, sort, ascending, limit },
+    { search, type, keywords, sort, ascending, limit, author },
     user,
     match
 ) => {
@@ -289,6 +289,15 @@ const createSearchAggregate = async (
         // default sort for no search term and sort = score
         sort = 'title';
         ascending = true;
+    }
+
+    if (author) {
+        const users = await User.find({
+            username: { $regex: author, $options: 'i' },
+        }).then((res) => res.map((u) => u._id));
+        aggregate.push({
+            $match: { user: { $in: users } },
+        });
     }
 
     if (user) {
