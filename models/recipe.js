@@ -21,6 +21,10 @@ const recipeSchema = mongoose.Schema(
                 type: Number,
                 required: true,
             },
+            art: {
+                type: String,
+                required: false,
+            },
             form: [
                 {
                     type: Number,
