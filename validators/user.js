@@ -36,7 +36,31 @@ const setPassword = [
     }),
 ];
 
+const newPassword = [
+    body('password')
+        .not()
+        .isEmpty()
+        .withMessage('password is required')
+        .bail()
+        .trim()
+        .isLength({ min: 8 })
+        .withMessage('your password should have min length of 8'),
+
+    body('confirmPassword')
+        .not()
+        .isEmpty()
+        .withMessage('confirmPassword is required')
+        .bail()
+        .custom((value, { req }) => {
+            if (value !== req.body.password) {
+                throw new Error('confirm password does not match');
+            }
+            return true;
+        }),
+];
+
 module.exports = {
     resetPassword,
     setPassword,
+    newPassword,
 };

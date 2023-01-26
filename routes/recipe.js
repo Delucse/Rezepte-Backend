@@ -205,9 +205,8 @@ recipe.delete('/:id', authorization, async (req, res) => {
                 }
             }
         });
-        const info = await RecipeUser.findOneAndRemove({
-            recipe: req.params.id,
-            user: req.user.id,
+        await RecipeUser.deleteMany({
+            recipe: deletedRecipe._id,
         });
         res.send({ msg: 'deleted recipe successfully' });
     } else {

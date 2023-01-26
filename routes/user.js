@@ -1,20 +1,31 @@
 var express = require('express');
 var api = express.Router();
 
-const mongoose = require('mongoose');
 const User = require('../models/user');
+const Recipe = require('../models/recipe');
+const Picture = require('../models/picture');
+const RecipeUser = require('../models/recipeUser');
+const RefreshToken = require('../models/refreshToken');
 
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const path = require('path');
+const fs = require('fs').promises;
 
-const { authorization } = require('../helper/authorization');
+const imageKit = require('../utils/imageKit');
+
+const { authorization, invalidateToken } = require('../helper/authorization');
 
 const { send, email } = require('../utils/emailTransporter');
 
 const queryNewPassword = require('../templates/resetPassword');
 
 const validate = require('../validators/index');
-const { resetPassword, setPassword } = require('../validators/user');
+const {
+    resetPassword,
+    setPassword,
+    newPassword,
+} = require('../validators/user');
 
 api.get('/', authorization, async (req, res) => {
     try {
@@ -99,6 +110,87 @@ api.put('/password/:id', setPassword, validate, async (req, res) => {
                 });
             }
         );
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+api.put('/password', authorization, newPassword, validate, async (req, res) => {
+    try {
+        // hash password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(req.body.password, salt);
+
+        await User.findOneAndUpdate(
+            { _id: req.user.id },
+            { password: hashedPassword }
+        );
+
+        res.status(200).json({
+            message: 'password changed',
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+api.delete('/', authorization, async (req, res) => {
+    try {
+        const deletedRecipes = await Recipe.find({ user: req.user.id });
+        await Recipe.deleteMany({
+            user: req.user.id,
+        });
+        const folder = path.join(__dirname, '..', '/public');
+        if (deletedRecipes) {
+            deletedRecipes.forEach(async (deletedRecipe) => {
+                deletedRecipe.pictures.forEach(async (picId) => {
+                    const deletedPicture = await Picture.findOneAndRemove({
+                        _id: picId,
+                        user: req.user.id,
+                    });
+                    if (deletedPicture) {
+                        if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                            await imageKit.deleteFile(deletedPicture._id);
+                        } else {
+                            await fs.unlink(`${folder}/${deletedPicture.file}`);
+                        }
+                    }
+                    await RecipeUser.deleteMany({
+                        recipe: deletedRecipe._id,
+                    });
+                });
+            });
+        }
+        const deletedImages = await Picture.find({ user: req.user.id });
+        await Picture.deleteMany({ user: req.user.id });
+        if (deletedImages) {
+            deletedImages.forEach(async (deletedImage) => {
+                if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                    try {
+                        await imageKit.deleteFile(deletedImage._id);
+                    } catch (err) {
+                        // images are stored in two different folders: localhost and production
+                    }
+                } else {
+                    try {
+                        await fs.unlink(`${folder}/${deletedImage.file}`);
+                    } catch (err) {
+                        // images are stored in two different folders: localhost and production
+                    }
+                }
+                await Recipe.findByIdAndUpdate(deletedImage.recipe, {
+                    $pull: { pictures: deletedImage._id },
+                });
+            });
+        }
+        await RecipeUser.deleteMany({ user: req.user.id });
+        await User.findOneAndRemove({ _id: req.user.id });
+        // invalidate JWT
+        const rawAuthorizationHeader = req.header('authorization');
+        const [, token] = rawAuthorizationHeader.split(' ');
+        await invalidateToken(token);
+        await RefreshToken.deleteMany({ user: req.user.id });
+        res.send({ msg: 'deleted user successfully' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
