@@ -63,7 +63,8 @@ const getUser = (req, res, next) => {
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
         if (err) {
             // return catchError(err, res);
-            return next();
+            return res.status(401).json({ message: 'unauthorized' });
+            // return next();
         }
         var invalid = await TokenBlacklist.findOne({ token: token });
         if (invalid) {
