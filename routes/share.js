@@ -36,14 +36,21 @@ api.get('/:id', async function (req, res) {
         const recipe = await Recipe.aggregate(aggregate);
 
         if (recipe.length > 0) {
+            var params = '';
+            if (req.query.portion) {
+                params += `?portion=${req.query.portion}`;
+            }
+            if (req.query.form) {
+                params += `${!params ? '?' : '&'}form=${req.query.form}`;
+            }
             res.render('index', {
-                title: `${recipe[0].title} | Delucse`,
-                description: `Deine Plattform für Rezepte | Rezept finden, Portionsumfang einstellen, Zutaten zusammenstellen und kochen - Guten Appetit!`,
+                title: `${recipe[0].title}`,
+                description: `Delucse - Deine Plattform für Rezepte | Rezept finden, Portionsumfang einstellen, Zutaten zusammenstellen und kochen - Guten Appetit!`,
                 pictureUrl: recipe[0].picture
                     ? `${process.env.MEDIA_URL}/${recipe[0].picture}`
                     : null,
                 url: process.env.APP_BASE_URL,
-                redirectUrl: `${process.env.APP_BASE_URL}/rezepte/${id}`,
+                redirectUrl: `${process.env.APP_BASE_URL}/rezepte/${id}${params}`,
             });
         } else {
             res.render('index', {
