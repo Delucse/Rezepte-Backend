@@ -7,7 +7,7 @@ const Picture = require('../models/picture');
 const RecipeUser = require('../models/recipeUser');
 
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
+const cryptojs = require('crypto-js');
 const path = require('path');
 const fs = require('fs').promises;
 
@@ -24,6 +24,7 @@ const {
     resetPassword,
     setPassword,
     newPassword,
+    deleteUser,
 } = require('../validators/user');
 
 api.get('/', authorization, async (req, res) => {
@@ -92,16 +93,14 @@ api.put('/password/:id', setPassword, validate, async (req, res) => {
                 if (decoded.id !== user._id.toHexString())
                     return res.status(403).json({ message: 'invalid user' });
 
-                // hash password
-                const salt = await bcrypt.genSalt(10);
-                const hashedPassword = await bcrypt.hash(
-                    req.body.password,
-                    salt
-                );
-
                 await User.findOneAndUpdate(
                     { _id: decoded.id },
-                    { password: hashedPassword }
+                    {
+                        password: cryptojs.AES.encrypt(
+                            req.body.password,
+                            process.env.PASSWORD_SECRET
+                        ).toString(),
+                    }
                 );
 
                 res.status(200).json({
@@ -116,13 +115,27 @@ api.put('/password/:id', setPassword, validate, async (req, res) => {
 
 api.put('/password', authorization, newPassword, validate, async (req, res) => {
     try {
-        // hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(req.body.password, salt);
+        const user = await User.findById(req.user.id);
+
+        // checking if password is correct
+        const hashedPassword = cryptojs.AES.decrypt(
+            user.password,
+            process.env.PASSWORD_SECRET
+        );
+        const validPassword =
+            hashedPassword.toString(cryptojs.enc.Utf8) === req.body.oldPassword;
+
+        if (!validPassword)
+            return res.status(403).send({ message: 'unauthorized' });
 
         await User.findOneAndUpdate(
             { _id: req.user.id },
-            { password: hashedPassword }
+            {
+                password: cryptojs.AES.encrypt(
+                    req.body.password,
+                    process.env.PASSWORD_SECRET
+                ).toString(),
+            }
         );
 
         res.status(200).json({
@@ -133,8 +146,20 @@ api.put('/password', authorization, newPassword, validate, async (req, res) => {
     }
 });
 
-api.delete('/', authorization, async (req, res) => {
+api.delete('/', authorization, deleteUser, validate, async (req, res) => {
     try {
+        const user = await User.findById(req.user.id);
+        // checking if password is correct
+        const hashedPassword = cryptojs.AES.decrypt(
+            user.password,
+            process.env.PASSWORD_SECRET
+        );
+        const validPassword =
+            hashedPassword.toString(cryptojs.enc.Utf8) === req.body.password;
+
+        if (!validPassword)
+            return res.status(403).send({ message: 'unauthorized' });
+
         const deletedRecipes = await Recipe.find({ user: req.user.id });
         await Recipe.deleteMany({
             user: req.user.id,

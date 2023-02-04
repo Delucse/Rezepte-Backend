@@ -7,10 +7,10 @@
         "dev": "nodemon ./bin/www"
     },
     "dependencies": {
-        "bcryptjs": "^2.4.3",
         "chalk": "^4.1.2",
         "cookie-parser": "^1.4.6",
         "cors": "^2.8.5",
+        "crypto-js": "^4.1.1",
         "debug": "~2.6.9",
         "dotenv": "^16.0.3",
         "express": "^4.18.2",

@@ -2,7 +2,7 @@ var express = require('express');
 var api = express.Router();
 
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
+const cryptojs = require('crypto-js');
 
 const mongoose = require('mongoose');
 const User = require('../models/user');
@@ -28,14 +28,13 @@ api.post('/signup', signup, validate, async (req, res) => {
         if (usernameExists)
             return res.status(409).send({ message: 'username already exists' });
 
-        // hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(req.body.password, salt);
-
         const user = new User({
             email: req.body.email,
             username: req.body.username,
-            password: hashedPassword,
+            password: cryptojs.AES.encrypt(
+                req.body.password,
+                process.env.PASSWORD_SECRET
+            ).toString(),
         });
 
         const token = jwt.sign(
@@ -109,10 +108,13 @@ api.post('/signin', signin, validate, async (req, res) => {
             return res.status(403).send({ message: 'user is not verified.' });
 
         // checking if password is correct
-        const validPassword = await bcrypt.compare(
-            req.body.password,
-            user.password
+        const hashedPassword = cryptojs.AES.decrypt(
+            user.password,
+            process.env.PASSWORD_SECRET
         );
+        const validPassword =
+            hashedPassword.toString(cryptojs.enc.Utf8) === req.body.password;
+
         if (!validPassword)
             return res
                 .status(403)

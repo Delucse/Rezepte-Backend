@@ -37,6 +37,8 @@ const setPassword = [
 ];
 
 const newPassword = [
+    body('oldPassword').not().isEmpty().withMessage('oldPassword is required'),
+
     body('password')
         .not()
         .isEmpty()
@@ -59,8 +61,13 @@ const newPassword = [
         }),
 ];
 
+const deleteUser = [
+    body('password').not().isEmpty().withMessage('password is required'),
+];
+
 module.exports = {
     resetPassword,
     setPassword,
     newPassword,
+    deleteUser,
 };
