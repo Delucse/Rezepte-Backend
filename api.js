@@ -3,6 +3,7 @@ var express = require('express');
 var path = require('path');
 var logger = require('morgan');
 var bodyParser = require('body-parser');
+var cookieParser = require('cookie-parser');
 var cors = require('cors');
 
 var api = express();
@@ -11,12 +12,13 @@ var api = express();
 require('dotenv').config();
 
 api.use(logger('dev'));
-api.use(cors());
+api.use(cors({ credentials: true, origin: process.env.APP_BASE_URL }));
 
 api.set('views', './views');
 api.set('view engine', 'hbs');
 
 api.use(bodyParser.json({ limit: '10mb', extended: true }));
+api.use(cookieParser());
 
 if (!process.env.IMAGEKIT_PUBLIC_KEY) {
     api.use('/media', express.static(path.join(__dirname, 'public')));

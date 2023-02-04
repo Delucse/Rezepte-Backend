@@ -6,14 +6,8 @@ const bcrypt = require('bcryptjs');
 
 const mongoose = require('mongoose');
 const User = require('../models/user');
-const RefreshToken = require('../models/refreshToken');
-const TokenBlacklist = require('../models/tokenBlacklist');
 
-const {
-    createToken,
-    authorization,
-    invalidateToken,
-} = require('../helper/authorization');
+const { createToken } = require('../helper/authorization');
 
 const { send, email } = require('../utils/emailTransporter');
 
@@ -124,44 +118,37 @@ api.post('/signin', signin, validate, async (req, res) => {
                 .status(403)
                 .send({ message: 'username or password is wrong.' });
 
-        // create JWT-Token and refresh-Token
+        // create access- and refresh-Token
         const { token: token, refreshToken: refreshToken } = await createToken(
             user._id
         );
 
+        // create secure cookie with refresh token
+        res.cookie('token', refreshToken, {
+            httpOnly: true, // accessible only by web server
+            secure: true, // https
+            sameSite: 'None', //cross-site cookie
+            maxAge: Number(process.env.REFRESH_TOKEN_EXPIRATION) * 1000, // cookie expiry: set to match rT
+        });
+
         res.status(200).send({
             user: user.username,
             token: token,
-            refreshToken: refreshToken,
         });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
 
-api.post('/signout', authorization, signout, validate, async (req, res) => {
-    const rawAuthorizationHeader = req.header('authorization');
-    const [, token] = rawAuthorizationHeader.split(' ');
+api.post('/signout', async (req, res) => {
     try {
-        if (req.body.token) {
-            var deleteToken = await RefreshToken.deleteOne({
-                token: req.body.token,
-                user: req.user.id,
-            });
-            if (deleteToken.deletedCount > 0) {
-                // invalidate JWT
-                await invalidateToken(token);
-                return res.status(200).json({ message: 'signed out' });
-            } else {
-                return res
-                    .status(401)
-                    .json({ message: 'refresh token does not exist' });
-            }
-        } else {
-            // invalidate JWT
-            await invalidateToken(token);
-            RefreshToken.deleteMany({ user: req.user.id }).exec();
-        }
+        const cookies = req.cookies;
+        if (!cookies?.token) return res.sendStatus(204); //No content
+        res.clearCookie('token', {
+            httpOnly: true,
+            sameSite: 'None',
+            secure: true,
+        });
         res.status(200).json({ message: 'signed out' });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -170,36 +157,42 @@ api.post('/signout', authorization, signout, validate, async (req, res) => {
 
 api.post('/refresh', async (req, res) => {
     try {
-        const { token: requestToken } = req.body;
-        if (requestToken == null)
-            return res.status(403).json({ message: 'unauthorized' });
-        const refreshToken = await RefreshToken.findOne({
-            token: requestToken,
-        });
-        if (!refreshToken)
+        const cookies = req.cookies;
+        if (!cookies?.token)
             return res.status(403).json({ message: 'unauthorized' });
 
-        if (RefreshToken.verifyExpiration(refreshToken)) {
-            RefreshToken.findByIdAndRemove(refreshToken._id, {
-                useFindAndModify: false,
-            }).exec();
-            return res.status(403).json({
-                message:
-                    'refresh token expired, please make a new signin request',
-            });
-        }
+        const refreshToken = cookies.token;
 
-        // create JWT-Token and refresh-Token
-        const { token: newToken, refreshToken: newRefreshToken } =
-            await createToken(refreshToken.user);
-        RefreshToken.findByIdAndRemove(refreshToken._id, {
-            useFindAndModify: false,
-        }).exec();
+        jwt.verify(
+            refreshToken,
+            process.env.REFRESH_TOKEN_SECRET,
+            async (err, decoded) => {
+                if (err)
+                    return res.status(403).json({ message: 'unauthorized' });
 
-        res.status(200).json({
-            token: newToken,
-            refreshToken: newRefreshToken,
-        });
+                const user = await User.findById(decoded.id);
+
+                if (!user)
+                    return res.status(403).json({ message: 'Unauthorized' });
+
+                // create access- and refresh-Token
+                const { token: token, refreshToken: refreshToken } =
+                    await createToken(user._id);
+
+                // create secure cookie with refresh token
+                res.cookie('token', refreshToken, {
+                    httpOnly: true, // accessible only by web server
+                    secure: true, // https
+                    sameSite: 'None', //cross-site cookie
+                    maxAge: Number(process.env.REFRESH_TOKEN_EXPIRATION) * 1000, // cookie expiry: set to match rT
+                });
+
+                res.status(200).send({
+                    user: user.username,
+                    token: token,
+                });
+            }
+        );
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

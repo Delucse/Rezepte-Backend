@@ -5,7 +5,6 @@ const User = require('../models/user');
 const Recipe = require('../models/recipe');
 const Picture = require('../models/picture');
 const RecipeUser = require('../models/recipeUser');
-const RefreshToken = require('../models/refreshToken');
 
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -185,11 +184,14 @@ api.delete('/', authorization, async (req, res) => {
         }
         await RecipeUser.deleteMany({ user: req.user.id });
         await User.findOneAndRemove({ _id: req.user.id });
-        // invalidate JWT
-        const rawAuthorizationHeader = req.header('authorization');
-        const [, token] = rawAuthorizationHeader.split(' ');
-        await invalidateToken(token);
-        await RefreshToken.deleteMany({ user: req.user.id });
+
+        if (req.cookies?.token) {
+            res.clearCookie('token', {
+                httpOnly: true,
+                sameSite: 'None',
+                secure: true,
+            });
+        }
         res.send({ msg: 'deleted user successfully' });
     } catch (err) {
         res.status(500).json({ message: err.message });

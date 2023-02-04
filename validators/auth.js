@@ -51,13 +51,8 @@ const signin = [
     body('password').not().isEmpty().withMessage('password is required'),
 ];
 
-const signout = [
-    body('token').not().isEmpty().withMessage('token is required').optional(),
-];
-
 module.exports = {
     signup,
     verification,
     signin,
-    signout,
 };
