@@ -280,6 +280,31 @@ const createSearchAggregate = async (
             });
             aggregate.push({ $set: { score: { $sum: scoreRegEx } } });
             aggregate.push({ $match: { score: { $gt: 0 } } });
+            if (type === 'ingredients') {
+                aggregate.push({
+                    $group: {
+                        _id: '$_id',
+                        user: {
+                            $first: '$user',
+                        },
+                        title: {
+                            $first: '$title',
+                        },
+                        time: {
+                            $first: '$time',
+                        },
+                        keywords: {
+                            $first: '$keywords',
+                        },
+                        pictures: {
+                            $first: '$pictures',
+                        },
+                        score: {
+                            $sum: '$score',
+                        },
+                    },
+                });
+            }
         } else {
             aggregate.push({ $match: { $text: { $search: search } } });
             score = { $meta: 'textScore' }; // default value for search term
