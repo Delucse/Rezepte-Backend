@@ -30,6 +30,9 @@ var shareRouter = express.Router();
 var indexRouter = require('./routes/index');
 apiRouter.use('/', indexRouter);
 
+var statisticRouter = require('./routes/statistics');
+apiRouter.use('/stats', statisticRouter);
+
 var authRouter = require('./routes/auth');
 apiRouter.use('/auth', authRouter);
 
