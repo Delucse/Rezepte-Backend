@@ -69,7 +69,45 @@ image.post('/:recipeId', authorization, (req, res) => {
     });
 });
 
-image.get('/', authorization, async (req, res) => {
+image.get('/', async (req, res) => {
+    try {
+        const image = await Picture.aggregate([
+            {
+                $lookup: {
+                    from: 'recipes',
+                    localField: 'recipe',
+                    foreignField: '_id',
+                    as: 'recipe',
+                },
+            },
+            { $addFields: { recipe: { $first: '$recipe' } } },
+            { $sort: { createdAt: -1 } },
+            {
+                $limit:
+                    req.query.limit &&
+                    !isNaN(req.query.limit) &&
+                    req.query.limit <= 10
+                        ? Number(req.query.limit)
+                        : 10,
+            },
+            {
+                $project: {
+                    _id: 1,
+                    file: 1,
+                    recipe: {
+                        _id: 1,
+                        title: 1,
+                    },
+                },
+            },
+        ]);
+        res.send(image);
+    } catch (e) {
+        res.status(400).json({ msg: e.message });
+    }
+});
+
+image.get('/user', authorization, async (req, res) => {
     try {
         const image = await Picture.aggregate([
             { $match: { user: req.user.id } },
