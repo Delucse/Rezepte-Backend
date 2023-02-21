@@ -141,12 +141,28 @@ api.get('/', async function (req, res, next) {
 
     res.json({
         users: { count: userCount },
-        recipes: { count: recipeCount, user: mostRecipes[0] },
-        images: { count: imageCount, user: mostImages[0] },
+        recipes: {
+            count: recipeCount,
+            user:
+                mostRecipes.length > 0
+                    ? mostRecipes[0]
+                    : { count: 0, name: '' },
+        },
+        images: {
+            count: imageCount,
+            user:
+                mostImages.length > 0 ? mostImages[0] : { count: 0, name: '' },
+        },
         favorites: {
-            user: mostFavorites[0],
-            recipe: favoriteRecipe[0],
-            total: totalFavorites[0].count,
+            user:
+                mostFavorites.length > 0
+                    ? mostFavorites[0]
+                    : { count: 0, name: '' },
+            recipe:
+                favoriteRecipe.length > 0
+                    ? favoriteRecipe[0]
+                    : { count: 0, _id: '', title: '' },
+            total: totalFavorites.length > 0 ? totalFavorites[0].count : 0,
         },
     });
 });
