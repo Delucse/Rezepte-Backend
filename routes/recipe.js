@@ -3,10 +3,12 @@ var recipe = express.Router();
 
 const upload = require('../utils/multer');
 const imageKit = require('../utils/imageKit');
+const sharp = require('sharp');
 const { authorization, getUser } = require('../helper/authorization');
 
 const path = require('path');
 const fs = require('fs').promises;
+const { v4: uuidv4 } = require('uuid');
 
 const mongoose = require('mongoose');
 const Picture = require('../models/picture');
@@ -41,11 +43,14 @@ recipe.post('/', authorization, (req, res) => {
                 if (req.files) {
                     const promises = req.files.map(async (file) => {
                         var newPic;
+                        const filename = uuidv4() + '.webp';
                         if (process.env.IMAGEKIT_PUBLIC_KEY) {
-                            const data = await fs.readFile(file.path);
+                            const data = await sharp(file.buffer)
+                                .webp()
+                                .toBuffer();
                             const imageFile = await imageKit.upload({
                                 file: data,
-                                fileName: file.filename,
+                                fileName: filename,
                             });
                             newPic = new Picture({
                                 _id: imageFile.fileId,
@@ -56,10 +61,19 @@ recipe.post('/', authorization, (req, res) => {
                                 recipe: recipeId,
                             });
                         } else {
+                            await sharp(file.buffer)
+                                .webp()
+                                .toFile(
+                                    `${path.join(
+                                        __dirname,
+                                        '..',
+                                        '/public'
+                                    )}/${filename}`
+                                );
                             newPic = new Picture({
                                 contentType: file.mimetype,
                                 size: file.size,
-                                file: file.filename,
+                                file: filename,
                                 user: req.user.id,
                                 recipe: recipeId,
                             });
@@ -111,11 +125,14 @@ recipe.put('/:id', authorization, (req, res) => {
                 if (req.files) {
                     const promises = req.files.map(async (file) => {
                         var newPic;
+                        const filename = uuidv4() + '.webp';
                         if (process.env.IMAGEKIT_PUBLIC_KEY) {
-                            const data = await fs.readFile(file.path);
+                            const data = await sharp(file.buffer)
+                                .webp()
+                                .toBuffer();
                             const imageFile = await imageKit.upload({
                                 file: data,
-                                fileName: file.filename,
+                                fileName: filename,
                             });
                             var newPic = new Picture({
                                 _id: imageFile.fileId,
@@ -126,10 +143,19 @@ recipe.put('/:id', authorization, (req, res) => {
                                 recipe: req.params.id,
                             });
                         } else {
+                            await sharp(file.buffer)
+                                .webp()
+                                .toFile(
+                                    `${path.join(
+                                        __dirname,
+                                        '..',
+                                        '/public'
+                                    )}/${filename}`
+                                );
                             newPic = new Picture({
                                 contentType: file.mimetype,
                                 size: file.size,
-                                file: file.filename,
+                                file: filename,
                                 user: req.user.id,
                                 recipe: req.params.id,
                             });

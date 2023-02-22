@@ -3,10 +3,12 @@ var image = express.Router();
 
 const upload = require('../utils/multer');
 const imageKit = require('../utils/imageKit');
+const sharp = require('sharp');
 const { authorization } = require('../helper/authorization');
 
 const path = require('path');
 const fs = require('fs').promises;
+const { v4: uuidv4 } = require('uuid');
 
 const Picture = require('../models/picture');
 const Recipe = require('../models/recipe');
@@ -24,11 +26,14 @@ image.post('/:recipeId', authorization, (req, res) => {
             try {
                 if (req.file) {
                     var newPic;
+                    const filename = uuidv4() + '.webp';
                     if (process.env.IMAGEKIT_PUBLIC_KEY) {
-                        const data = await fs.readFile(req.file.path);
+                        const data = await sharp(req.file.buffer)
+                            .webp()
+                            .toBuffer();
                         const file = await imageKit.upload({
                             file: data,
-                            fileName: req.file.filename,
+                            fileName: filename,
                         });
                         newPic = new Picture({
                             _id: file.fileId,
@@ -39,10 +44,19 @@ image.post('/:recipeId', authorization, (req, res) => {
                             recipe: req.params.recipeId,
                         });
                     } else {
+                        await sharp(req.file.buffer)
+                            .webp()
+                            .toFile(
+                                `${path.join(
+                                    __dirname,
+                                    '..',
+                                    '/public'
+                                )}/${filename}`
+                            );
                         newPic = new Picture({
                             contentType: req.file.mimetype,
                             size: req.file.size,
-                            file: req.file.filename,
+                            file: filename,
                             user: req.user.id,
                             recipe: req.params.recipeId,
                         });
