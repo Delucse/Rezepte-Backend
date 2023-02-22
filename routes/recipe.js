@@ -67,7 +67,7 @@ recipe.post('/', authorization, (req, res) => {
                                     `${path.join(
                                         __dirname,
                                         '..',
-                                        '/public'
+                                        process.env.MEDIA_PATH || 'public'
                                     )}/${filename}`
                                 );
                             newPic = new Picture({
@@ -149,7 +149,7 @@ recipe.put('/:id', authorization, (req, res) => {
                                     `${path.join(
                                         __dirname,
                                         '..',
-                                        '/public'
+                                        process.env.MEDIA_PATH || 'public'
                                     )}/${filename}`
                                 );
                             newPic = new Picture({
@@ -166,7 +166,11 @@ recipe.put('/:id', authorization, (req, res) => {
                     pictureIds = pictures;
                 }
                 if (removedPictures && removedPictures.length > 0) {
-                    const folder = path.join(__dirname, '..', '/public');
+                    const folder = path.join(
+                        __dirname,
+                        '..',
+                        process.env.MEDIA_PATH || 'public'
+                    );
                     removedPictures.forEach(async (pic) => {
                         const deletedPicture = await Picture.findOneAndRemove({
                             _id: pic,
@@ -217,7 +221,11 @@ recipe.delete('/:id', authorization, async (req, res) => {
         user: req.user.id,
     });
     if (deletedRecipe) {
-        const folder = path.join(__dirname, '..', '/public');
+        const folder = path.join(
+            __dirname,
+            '..',
+            process.env.MEDIA_PATH || 'public'
+        );
         deletedRecipe.pictures.forEach(async (picId) => {
             const deletedPicture = await Picture.findOneAndRemove({
                 _id: picId,

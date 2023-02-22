@@ -21,7 +21,10 @@ api.use(bodyParser.json({ limit: '10mb', extended: true }));
 api.use(cookieParser());
 
 if (!process.env.IMAGEKIT_PUBLIC_KEY) {
-    api.use('/media', express.static(path.join(__dirname, 'public')));
+    api.use(
+        '/media',
+        express.static(path.join(__dirname, process.env.MEDIA_PATH || 'public'))
+    );
 }
 
 var apiRouter = express.Router();

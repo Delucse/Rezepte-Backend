@@ -50,7 +50,7 @@ image.post('/:recipeId', authorization, (req, res) => {
                                 `${path.join(
                                     __dirname,
                                     '..',
-                                    '/public'
+                                    process.env.MEDIA_PATH || 'public'
                                 )}/${filename}`
                             );
                         newPic = new Picture({
@@ -172,7 +172,11 @@ image.delete('/:id', authorization, async (req, res) => {
                 // images are stored in two different folders: localhost and production
             }
         } else {
-            const folder = path.join(__dirname, '..', '/public');
+            const folder = path.join(
+                __dirname,
+                '..',
+                process.env.MEDIA_PATH || 'public'
+            );
             try {
                 await fs.unlink(`${folder}/${deletedImage.file}`);
             } catch (err) {

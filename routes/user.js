@@ -164,7 +164,11 @@ api.delete('/', authorization, deleteUser, validate, async (req, res) => {
         await Recipe.deleteMany({
             user: req.user.id,
         });
-        const folder = path.join(__dirname, '..', '/public');
+        const folder = path.join(
+            __dirname,
+            '..',
+            process.env.MEDIA_PATH || 'public'
+        );
         if (deletedRecipes) {
             deletedRecipes.forEach(async (deletedRecipe) => {
                 deletedRecipe.pictures.forEach(async (picId) => {
