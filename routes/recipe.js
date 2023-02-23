@@ -86,7 +86,7 @@ recipe.post('/', authorization, (req, res) => {
                 await new Recipe(newRecipe).save();
                 res.send({ msg: 'created recipe successfully', id: recipeId });
             } catch (e) {
-                res.status(400).json({ msg: e.message });
+                res.status(500).json({ msg: e.message });
             }
         }
     });
@@ -209,42 +209,46 @@ recipe.put('/:id', authorization, (req, res) => {
                     id: req.params.id,
                 });
             } catch (e) {
-                res.status(400).json({ msg: e.message });
+                res.status(500).json({ msg: e.message });
             }
         }
     });
 });
 
 recipe.delete('/:id', authorization, async (req, res) => {
-    const deletedRecipe = await Recipe.findOneAndRemove({
-        _id: req.params.id,
-        user: req.user.id,
-    });
-    if (deletedRecipe) {
-        const folder = path.join(
-            __dirname,
-            '..',
-            process.env.MEDIA_PATH || 'public'
-        );
-        deletedRecipe.pictures.forEach(async (picId) => {
-            const deletedPicture = await Picture.findOneAndRemove({
-                _id: picId,
-                user: req.user.id,
-            });
-            if (deletedPicture) {
-                if (process.env.IMAGEKIT_PUBLIC_KEY) {
-                    await imageKit.deleteFile(deletedPicture._id);
-                } else {
-                    await fs.unlink(`${folder}/${deletedPicture.file}`);
+    try {
+        const deletedRecipe = await Recipe.findOneAndRemove({
+            _id: req.params.id,
+            user: req.user.id,
+        });
+        if (deletedRecipe) {
+            const folder = path.join(
+                __dirname,
+                '..',
+                process.env.MEDIA_PATH || 'public'
+            );
+            deletedRecipe.pictures.forEach(async (picId) => {
+                const deletedPicture = await Picture.findOneAndRemove({
+                    _id: picId,
+                    user: req.user.id,
+                });
+                if (deletedPicture) {
+                    if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                        await imageKit.deleteFile(deletedPicture._id);
+                    } else {
+                        await fs.unlink(`${folder}/${deletedPicture.file}`);
+                    }
                 }
-            }
-        });
-        await RecipeUser.deleteMany({
-            recipe: deletedRecipe._id,
-        });
-        res.send({ msg: 'deleted recipe successfully' });
-    } else {
-        res.status(400).json({ msg: 'user does not match.' });
+            });
+            await RecipeUser.deleteMany({
+                recipe: deletedRecipe._id,
+            });
+            res.send({ msg: 'deleted recipe successfully' });
+        } else {
+            res.status(400).json({ msg: 'user does not match.' });
+        }
+    } catch (e) {
+        res.status(500).json({ msg: e.message });
     }
 });
 
@@ -467,7 +471,7 @@ recipe.get('/', getUser, async (req, res) => {
         const recipes = await Recipe.aggregate(aggregate);
         res.status(200).send(recipes);
     } catch (e) {
-        res.status(400).json({ msg: e.message });
+        res.status(500).json({ msg: e.message });
     }
 });
 
@@ -482,7 +486,7 @@ recipe.get('/baby', getUser, async (req, res) => {
         const recipes = await Recipe.aggregate(aggregate);
         res.send(recipes);
     } catch (e) {
-        res.status(400).json({ msg: e.message });
+        res.status(500).json({ msg: e.message });
     }
 });
 
@@ -497,7 +501,7 @@ recipe.get('/basic', getUser, async (req, res) => {
         const recipes = await Recipe.aggregate(aggregate);
         res.send(recipes);
     } catch (e) {
-        res.status(400).json({ msg: e.message });
+        res.status(500).json({ msg: e.message });
     }
 });
 
@@ -512,7 +516,7 @@ recipe.get('/user', authorization, async (req, res) => {
         const recipes = await Recipe.aggregate(aggregate);
         res.send(recipes);
     } catch (e) {
-        res.status(400).json({ msg: e.message });
+        res.status(500).json({ msg: e.message });
     }
 });
 
@@ -527,7 +531,7 @@ recipe.get('/favorite', authorization, async (req, res) => {
         const recipes = await Recipe.aggregate(aggregate);
         res.send(recipes);
     } catch (e) {
-        res.status(400).json({ msg: e.message });
+        res.status(500).json({ msg: e.message });
     }
 });
 
@@ -635,7 +639,7 @@ recipe.get('/:id', getUser, async (req, res) => {
             res.status(400).send({ msg: 'Recipe not available.' });
         }
     } catch (e) {
-        res.status(400).json({ msg: e.message });
+        res.status(500).json({ msg: e.message });
     }
 });
 

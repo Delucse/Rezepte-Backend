@@ -78,93 +78,99 @@ const mostAggregation = (match) => {
     return aggregation;
 };
 
-api.get('/', async function (req, res, next) {
-    const userCount = await User.aggregate(countAggregation);
-    const recipeCount = await Recipe.aggregate(countAggregation);
-    const mostRecipes = await Recipe.aggregate(mostAggregation());
-    const imageCount = await Picture.aggregate(countAggregation);
-    const mostImages = await Picture.aggregate(mostAggregation());
-    const totalFavorites = await RecipeUser.aggregate([
-        {
-            $match: {
-                favorite: true,
-            },
-        },
-        {
-            $count: 'count',
-        },
-    ]);
-    const mostFavorites = await RecipeUser.aggregate(
-        mostAggregation({ favorite: true })
-    );
-    const favoriteRecipe = await RecipeUser.aggregate([
-        {
-            $match: {
-                favorite: true,
-            },
-        },
-        {
-            $group: {
-                _id: '$recipe',
-                count: {
-                    $sum: 1,
+api.get('/', async function (req, res) {
+    try {
+        const userCount = await User.aggregate(countAggregation);
+        const recipeCount = await Recipe.aggregate(countAggregation);
+        const mostRecipes = await Recipe.aggregate(mostAggregation());
+        const imageCount = await Picture.aggregate(countAggregation);
+        const mostImages = await Picture.aggregate(mostAggregation());
+        const totalFavorites = await RecipeUser.aggregate([
+            {
+                $match: {
+                    favorite: true,
                 },
             },
-        },
-        {
-            $sort: {
-                count: -1,
-                _id: 1,
+            {
+                $count: 'count',
             },
-        },
-        {
-            $limit: 1,
-        },
-        {
-            $lookup: {
-                from: 'recipes',
-                localField: '_id',
-                foreignField: '_id',
-                as: 'recipe',
-            },
-        },
-        {
-            $project: {
-                _id: { $arrayElemAt: ['$recipe._id', 0] },
-                title: {
-                    $arrayElemAt: ['$recipe.title', 0],
+        ]);
+        const mostFavorites = await RecipeUser.aggregate(
+            mostAggregation({ favorite: true })
+        );
+        const favoriteRecipe = await RecipeUser.aggregate([
+            {
+                $match: {
+                    favorite: true,
                 },
-                count: 1,
             },
-        },
-    ]);
+            {
+                $group: {
+                    _id: '$recipe',
+                    count: {
+                        $sum: 1,
+                    },
+                },
+            },
+            {
+                $sort: {
+                    count: -1,
+                    _id: 1,
+                },
+            },
+            {
+                $limit: 1,
+            },
+            {
+                $lookup: {
+                    from: 'recipes',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'recipe',
+                },
+            },
+            {
+                $project: {
+                    _id: { $arrayElemAt: ['$recipe._id', 0] },
+                    title: {
+                        $arrayElemAt: ['$recipe.title', 0],
+                    },
+                    count: 1,
+                },
+            },
+        ]);
 
-    res.json({
-        users: { count: userCount },
-        recipes: {
-            count: recipeCount,
-            user:
-                mostRecipes.length > 0
-                    ? mostRecipes[0]
-                    : { count: 0, name: '' },
-        },
-        images: {
-            count: imageCount,
-            user:
-                mostImages.length > 0 ? mostImages[0] : { count: 0, name: '' },
-        },
-        favorites: {
-            user:
-                mostFavorites.length > 0
-                    ? mostFavorites[0]
-                    : { count: 0, name: '' },
-            recipe:
-                favoriteRecipe.length > 0
-                    ? favoriteRecipe[0]
-                    : { count: 0, _id: '', title: '' },
-            total: totalFavorites.length > 0 ? totalFavorites[0].count : 0,
-        },
-    });
+        res.json({
+            users: { count: userCount },
+            recipes: {
+                count: recipeCount,
+                user:
+                    mostRecipes.length > 0
+                        ? mostRecipes[0]
+                        : { count: 0, name: '' },
+            },
+            images: {
+                count: imageCount,
+                user:
+                    mostImages.length > 0
+                        ? mostImages[0]
+                        : { count: 0, name: '' },
+            },
+            favorites: {
+                user:
+                    mostFavorites.length > 0
+                        ? mostFavorites[0]
+                        : { count: 0, name: '' },
+                recipe:
+                    favoriteRecipe.length > 0
+                        ? favoriteRecipe[0]
+                        : { count: 0, _id: '', title: '' },
+                total: totalFavorites.length > 0 ? totalFavorites[0].count : 0,
+            },
+        });
+    } catch (e) {
+        res.status(500).json({ msg: e.message });
+    }
 });
 
 module.exports = api;

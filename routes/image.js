@@ -77,7 +77,7 @@ image.post('/:recipeId', authorization, (req, res) => {
                     res.status(400).json({ msg: 'No image' });
                 }
             } catch (e) {
-                res.status(400).json({ msg: e.message });
+                res.status(500).json({ msg: e.message });
             }
         }
     });
@@ -117,7 +117,7 @@ image.get('/', async (req, res) => {
         ]);
         res.send(image);
     } catch (e) {
-        res.status(400).json({ msg: e.message });
+        res.status(500).json({ msg: e.message });
     }
 });
 
@@ -155,40 +155,44 @@ image.get('/user', authorization, async (req, res) => {
         ]);
         res.send(image);
     } catch (e) {
-        res.status(400).json({ msg: e.message });
+        res.status(500).json({ msg: e.message });
     }
 });
 
 image.delete('/:id', authorization, async (req, res) => {
-    const deletedImage = await Picture.findOneAndRemove({
-        _id: req.params.id,
-        user: req.user.id,
-    });
-    if (deletedImage) {
-        if (process.env.IMAGEKIT_PUBLIC_KEY) {
-            try {
-                await imageKit.deleteFile(deletedImage._id);
-            } catch (err) {
-                // images are stored in two different folders: localhost and production
-            }
-        } else {
-            const folder = path.join(
-                __dirname,
-                '..',
-                process.env.MEDIA_PATH || 'public'
-            );
-            try {
-                await fs.unlink(`${folder}/${deletedImage.file}`);
-            } catch (err) {
-                // images are stored in two different folders: localhost and production
-            }
-        }
-        const recipe = await Recipe.findByIdAndUpdate(deletedImage.recipe, {
-            $pull: { pictures: req.params.id },
+    try {
+        const deletedImage = await Picture.findOneAndRemove({
+            _id: req.params.id,
+            user: req.user.id,
         });
-        res.send({ msg: 'deleted image successfully' });
-    } else {
-        res.status(400).json({ msg: 'user does not match.' });
+        if (deletedImage) {
+            if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                try {
+                    await imageKit.deleteFile(deletedImage._id);
+                } catch (err) {
+                    // images are stored in two different folders: localhost and production
+                }
+            } else {
+                const folder = path.join(
+                    __dirname,
+                    '..',
+                    process.env.MEDIA_PATH || 'public'
+                );
+                try {
+                    await fs.unlink(`${folder}/${deletedImage.file}`);
+                } catch (err) {
+                    // images are stored in two different folders: localhost and production
+                }
+            }
+            const recipe = await Recipe.findByIdAndUpdate(deletedImage.recipe, {
+                $pull: { pictures: req.params.id },
+            });
+            res.send({ msg: 'deleted image successfully' });
+        } else {
+            res.status(400).json({ msg: 'user does not match.' });
+        }
+    } catch (e) {
+        res.status(500).json({ msg: e.message });
     }
 });
 
