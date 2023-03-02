@@ -9,7 +9,9 @@ var cors = require('cors');
 var api = express();
 
 //reads in configuration from a .env file
-require('dotenv').config();
+require('dotenv').config({
+    path: `.env.${process.env.NODE_ENV || 'development'}`,
+});
 
 api.use(logger('dev'));
 api.use(cors({ credentials: true, origin: process.env.APP_BASE_URL }));
@@ -20,7 +22,7 @@ api.set('view engine', 'hbs');
 api.use(bodyParser.json({ limit: '10mb', extended: true }));
 api.use(cookieParser());
 
-if (!process.env.IMAGEKIT_PUBLIC_KEY) {
+if (!process.env.IMAGEKIT_PUBLIC_KEY || process.env.MEDIA_ROUTE === 'true') {
     api.use(
         '/media',
         express.static(path.join(__dirname, process.env.MEDIA_PATH || 'public'))
