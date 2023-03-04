@@ -1,3 +1,5 @@
+const moment = require('moment');
+
 const url = process.env.APP_BASE_URL;
 
 const sToReadableTime = (time) => {
@@ -107,7 +109,7 @@ module.exports = resetPassword = (name, token, id) => {
                 <td style="width:395px;" align="left" valign="top">
                 <![endif]-->
                 <div class="col-lge" style="display:inline-block;width:100%;max-width:395px;vertical-align:top;padding-bottom:20px; font-family:Arial,sans-serif;font-size:16px;line-height:22px;color:#363636;">
-                  <p style="margin-top:0;margin-bottom:18px;">Sollte der Button nicht funktionieren, bite einfach diesen Link <a href="${url}/passwort/${id}/${token}" style="color:#e85917;text-decoration:underline;">${`${url}/passwort/${id}/${token}`
+                  <p style="margin-top:0;margin-bottom:18px;">Sollte der Button nicht funktionieren, bitte einfach diesen Link <a href="${url}/passwort/${id}/${token}" style="color:#e85917;text-decoration:underline;">${`${url}/passwort/${id}/${token}`
         .split('')
         .map((s) => s + '&#8203;')
         .join(
@@ -131,7 +133,9 @@ module.exports = resetPassword = (name, token, id) => {
             </tr>
             <tr>
               <td style="padding:30px;text-align:center;font-size:12px;background-color:#404040;color:#cccccc;">
-                <p style="margin:0;font-size:14px;line-height:20px;">mit Hunger erstellt &#127860; &copy; Delucse, 2022</p>
+                <p style="margin:0;font-size:14px;line-height:20px;">mit Hunger erstellt &#127860; &copy; Delucse, ${moment().format(
+                    'YYYY'
+                )}</p>
               </td>
             </tr>
           </table>

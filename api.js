@@ -56,7 +56,14 @@ apiRouter.use('/recipe/favorite', favoriteRouter);
 var noteRouter = require('./routes/note');
 apiRouter.use('/recipe/note', noteRouter);
 
-api.use(`/${process.env.MONGODB_URI ? '' : 'api'}`, apiRouter);
+api.use(
+    `/${
+        process.env.MONGODB_URI || process.env.NODE_ENV === 'production'
+            ? ''
+            : 'api'
+    }`,
+    apiRouter
+);
 
 var sRouter = require('./routes/share');
 shareRouter.use('/r', sRouter);

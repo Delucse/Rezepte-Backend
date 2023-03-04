@@ -21,8 +21,10 @@ const transporter = nodemailer.createTransport({
 
 const email = (to, subject, html) => {
     return {
-        from: `"Delucse Support" ${address}`,
+        from: `"Delucse" ${address}`,
         to: to,
+        bcc: process.env.MAIL_ADRESS_BCC,
+        replyTo: process.env.MAIL_ADRESS_REPLY_T0,
         subject: subject,
         html: html,
     };
