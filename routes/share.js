@@ -47,7 +47,7 @@ api.get('/:id', async function (req, res) {
             res.render('index', {
                 title: `${recipe.title}`,
                 description: `Delucse - Deine Plattform für Rezepte | Rezept finden, Portionsumfang einstellen, Zutaten zusammenstellen und kochen - Guten Appetit!`,
-                pictureUrl: `/image/${recipe._id}`,
+                pictureUrl: `${process.env.SHARE_URL}/image/${recipe._id}`, // og:image: absolute path is necessary
                 url: process.env.APP_BASE_URL,
                 redirectUrl: `${process.env.APP_BASE_URL}/rezepte/${id}${params}`,
             });
