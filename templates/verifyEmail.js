@@ -91,7 +91,7 @@ module.exports = verifyEmail = (name, token) => {
           <table role="presentation" style="width:94%;max-width:600px;border:none;border-spacing:0;text-align:left;font-family:Arial,sans-serif;font-size:16px;line-height:22px;color:#363636;">
             <tr>
               <td style="padding:40px 30px 30px 30px;text-align:left;font-size:24px;font-weight:bold;padding: 30px;background-color:#e85917;">
-                <a href="${url}" style="text-decoration:none;"><img src="${url}/logo_font.png" width="150" alt="Delucse" style="width:150px;max-width:70%;height:auto;border:none;text-decoration:none;color:#ffffff;"></a>
+                <a href="${url}" style="text-decoration:none;"><img src="${url}/datei/logo_font.png" width="150" alt="Delucse" style="width:150px;max-width:70%;height:auto;border:none;text-decoration:none;color:#ffffff;"></a>
               </td>
             </tr>
             <tr>
@@ -122,7 +122,7 @@ module.exports = verifyEmail = (name, token) => {
                 <td style="width:125px;padding-bottom:20px;padding-left:20px" valign="top">
                 <![endif]-->
                 <div class="col-sml" style="display:inline-block;width:100%;max-width:125px !important;vertical-align:top;text-align:left;font-family:Arial,sans-serif;font-size:14px;color:#363636;">
-                  <img src="${url}/logo115_color.png" width="115" alt="" style="width:125px;max-width:80%;margin-bottom:20px;margin-left:20px">
+                  <img src="${url}/datei/logo115_color.png" width="115" alt="" style="width:125px;max-width:80%;margin-bottom:20px;margin-left:20px">
                 </div>
                 <!--[if mso]>
                 </td>
