@@ -852,6 +852,7 @@ recipe.get('/prototype/:id', authorization, async (req, res) => {
         });
         aggregate.push({
             $project: {
+                recipe: 1,
                 title: 1,
                 user: { $arrayElemAt: ['$user.username', 0] },
                 portion: 1,
