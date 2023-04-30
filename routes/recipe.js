@@ -15,6 +15,7 @@ const Picture = require('../models/picture');
 const Recipe = require('../models/recipe');
 const User = require('../models/user');
 const RecipeUser = require('../models/recipeUser');
+const RecipePrototpye = require('../models/recipePrototype');
 
 recipe.post('/', authorization, (req, res) => {
     upload.array('pictures')(req, res, async (err) => {
@@ -27,8 +28,15 @@ recipe.post('/', authorization, (req, res) => {
             }
         } else {
             try {
-                const { title, portion, time, keywords, ingredients, steps } =
-                    req.body;
+                const {
+                    title,
+                    portion,
+                    time,
+                    keywords,
+                    ingredients,
+                    steps,
+                    prototype,
+                } = req.body;
                 const recipeId = mongoose.Types.ObjectId();
                 var newRecipe = {
                     _id: recipeId,
@@ -84,6 +92,7 @@ recipe.post('/', authorization, (req, res) => {
                     newRecipe.pictures = pictures;
                 }
                 await new Recipe(newRecipe).save();
+                await RecipePrototpye.findOneAndRemove({ _id: prototype });
                 res.send({ msg: 'created recipe successfully', id: recipeId });
             } catch (e) {
                 res.status(500).json({ msg: e.message });
@@ -112,6 +121,7 @@ recipe.put('/:id', authorization, (req, res) => {
                     steps,
                     removedPictures,
                     picturesOrder,
+                    prototype,
                 } = req.body;
                 var newRecipe = {
                     title,
@@ -204,6 +214,7 @@ recipe.put('/:id', authorization, (req, res) => {
                     { _id: req.params.id },
                     { $set: newRecipe, $inc: { updates: 1 } }
                 );
+                await RecipePrototpye.findOneAndRemove({ _id: prototype });
                 res.send({
                     msg: 'updated recipe successfully',
                     id: req.params.id,
@@ -520,6 +531,21 @@ recipe.get('/user', authorization, async (req, res) => {
     }
 });
 
+recipe.get('/prototype', authorization, async (req, res) => {
+    try {
+        const match = { user: req.user.id };
+        const aggregate = await createSearchAggregate(
+            req.query,
+            req.user.id,
+            match
+        );
+        const recipes = await RecipePrototpye.aggregate(aggregate);
+        res.send(recipes);
+    } catch (e) {
+        res.status(500).json({ msg: e.message });
+    }
+});
+
 recipe.get('/favorite', authorization, async (req, res) => {
     try {
         const match = { favorite: true };
@@ -551,6 +577,21 @@ recipe.get('/:id', getUser, async (req, res) => {
             });
             aggregate.push({
                 $set: { note: info ? info.note : '' },
+            });
+            aggregate.push({
+                $lookup: {
+                    from: 'recipeprototypes',
+                    let: { recipe: '$_id' },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $eq: ['$recipe', '$$recipe'] },
+                            },
+                        },
+                        { $project: { _id: 1 } },
+                    ],
+                    as: 'prototype',
+                },
             });
         }
         aggregate.push({
@@ -627,6 +668,7 @@ recipe.get('/:id', getUser, async (req, res) => {
         if (req.user) {
             project.favorite = 1;
             project.note = 1;
+            project.prototype = { $arrayElemAt: ['$prototype._id', 0] };
         }
         aggregate.push({
             $project: project,
@@ -637,6 +679,209 @@ recipe.get('/:id', getUser, async (req, res) => {
             res.send(recipe[0]);
         } else {
             res.status(400).send({ msg: 'Recipe not available.' });
+        }
+    } catch (e) {
+        res.status(500).json({ msg: e.message });
+    }
+});
+
+recipe.post('/prototype', authorization, async (req, res) => {
+    try {
+        const { id, title, portion, time, keywords, ingredients, steps } =
+            req.body;
+        var newRecipe = {
+            recipe: id,
+            title,
+            portion,
+            time,
+            keywords,
+            ingredients,
+            steps,
+            user: req.user.id,
+        };
+        const prototype = await RecipePrototpye.findOneAndUpdate(
+            { recipe: id },
+            newRecipe,
+            {
+                upsert: true,
+                new: true,
+            }
+        );
+        res.send({
+            msg: 'created recipe prototype successfully',
+            id: prototype._id,
+        });
+    } catch (e) {
+        res.status(500).json({ msg: e.message });
+    }
+});
+
+recipe.put('/prototype/:id', authorization, async (req, res) => {
+    try {
+        var { title, portion, time, keywords, ingredients, steps } = req.body;
+        var newRecipe = {
+            title,
+            portion,
+            time,
+            keywords,
+            ingredients,
+            steps,
+        };
+        await RecipePrototpye.updateOne(
+            { _id: req.params.id },
+            { $set: newRecipe, $inc: { updates: 1 } }
+        );
+        res.send({
+            msg: 'updated recipe prototype successfully',
+            id: req.params.id,
+        });
+    } catch (e) {
+        res.status(500).json({ msg: e.message });
+    }
+});
+
+recipe.delete('/prototype/:id', authorization, async (req, res) => {
+    try {
+        const deletedRecipe = await RecipePrototpye.findOneAndRemove({
+            _id: req.params.id,
+            user: req.user.id,
+        });
+        if (deletedRecipe) {
+            res.send({ msg: 'deleted recipe prototype successfully' });
+        } else {
+            res.status(400).json({ msg: 'user does not match.' });
+        }
+    } catch (e) {
+        res.status(500).json({ msg: e.message });
+    }
+});
+
+recipe.get('/prototype/:id', authorization, async (req, res) => {
+    try {
+        const aggregate = [];
+        aggregate.push({
+            $match: { _id: mongoose.Types.ObjectId(req.params.id) },
+        });
+        aggregate.push({
+            $lookup: {
+                from: 'users',
+                let: { user: '$user' },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: { $eq: ['$_id', '$$user'] },
+                        },
+                    },
+                    { $project: { _id: 0, username: 1 } },
+                ],
+                as: 'user',
+            },
+        });
+        aggregate.push({
+            $lookup: {
+                from: 'recipes',
+                let: { recipeId: '$recipe' },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: { $eq: ['$_id', '$$recipeId'] },
+                        },
+                    },
+                    { $project: { pictures: 1 } },
+                    {
+                        $lookup: {
+                            from: 'pictures',
+                            let: { pictureArray: '$pictures' },
+                            pipeline: [
+                                {
+                                    $match: {
+                                        $expr: {
+                                            $in: ['$_id', '$$pictureArray'],
+                                        },
+                                    },
+                                },
+                                {
+                                    $addFields: {
+                                        sort: {
+                                            $indexOfArray: [
+                                                '$$pictureArray',
+                                                '$_id',
+                                            ],
+                                        },
+                                    },
+                                },
+                                { $sort: { sort: 1 } },
+                                {
+                                    $lookup: {
+                                        from: 'users',
+                                        let: { user: '$user' },
+                                        pipeline: [
+                                            {
+                                                $match: {
+                                                    $expr: {
+                                                        $eq: ['$_id', '$$user'],
+                                                    },
+                                                },
+                                            },
+                                            {
+                                                $project: {
+                                                    _id: 0,
+                                                    username: 1,
+                                                },
+                                            },
+                                        ],
+                                        as: 'user',
+                                    },
+                                },
+                                {
+                                    $project: {
+                                        _id: 1,
+                                        file: 1,
+                                        user: {
+                                            $arrayElemAt: ['$user.username', 0],
+                                        },
+                                    },
+                                },
+                            ],
+                            as: 'pictures',
+                        },
+                    },
+                ],
+                as: 'pictures',
+            },
+        });
+        aggregate.push({
+            $project: {
+                title: 1,
+                user: { $arrayElemAt: ['$user.username', 0] },
+                portion: 1,
+                pictures: { $arrayElemAt: ['$pictures.pictures', 0] },
+                time: 1,
+                keywords: 1,
+                ingredients: 1,
+                steps: 1,
+                updates: 1,
+                date: '$createdAt',
+            },
+        });
+
+        const prototype = await RecipePrototpye.aggregate(aggregate);
+        if (prototype.length > 0) {
+            prototype[0].pictures = prototype[0].pictures
+                ? prototype[0].pictures
+                : [];
+            prototype[0].ingredients = prototype[0].ingredients.map((i) => {
+                i.food.map((f) => {
+                    f.amount === null ? (f.amount = '') : f.amount;
+                    return f;
+                });
+                return i;
+            });
+            res.send(prototype[0]);
+        } else {
+            res.status(400).send({
+                msg: 'Recipe Prototype not available.',
+            });
         }
     } catch (e) {
         res.status(500).json({ msg: e.message });
