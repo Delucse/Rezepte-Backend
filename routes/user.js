@@ -44,7 +44,15 @@ api.post('/password', resetPassword, validate, async (req, res) => {
     try {
         // checking if user is in db
         const user = await User.findOne({
-            username: req.body.username,
+            $or: [
+                {
+                    username: {
+                        $regex: `^${req.body.username}$`,
+                        $options: 'i',
+                    },
+                },
+                { email: req.body.username.toLowerCase() },
+            ],
             verification: true,
         });
         if (!user)

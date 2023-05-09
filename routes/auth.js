@@ -23,7 +23,10 @@ api.post('/signup', signup, validate, async (req, res) => {
         if (emailExists)
             return res.status(409).send({ message: 'email already exists' });
         const usernameExists = await User.findOne({
-            username: req.body.username,
+            username: {
+                $regex: `^${req.body.username}$`,
+                $options: 'i',
+            },
         });
         if (usernameExists)
             return res.status(409).send({ message: 'username already exists' });
