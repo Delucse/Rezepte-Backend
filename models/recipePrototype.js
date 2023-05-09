@@ -23,7 +23,7 @@ const recipePrototypeSchema = mongoose.Schema(
         },
         portion: {
             count: {
-                type: Number,
+                type: String,
                 required: false,
             },
             art: {
@@ -32,21 +32,21 @@ const recipePrototypeSchema = mongoose.Schema(
             },
             form: [
                 {
-                    type: Number,
+                    type: String,
                 },
             ],
         },
         time: {
             preparation: {
-                type: Number,
+                type: String,
                 required: false,
             },
             resting: {
-                type: Number,
+                type: String,
                 required: false,
             },
             baking: {
-                type: Number,
+                type: String,
                 required: false,
             },
         },
@@ -67,7 +67,7 @@ const recipePrototypeSchema = mongoose.Schema(
                     {
                         _id: false,
                         amount: {
-                            type: Number,
+                            type: String,
                             required: false,
                         },
                         unit: {

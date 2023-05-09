@@ -92,7 +92,9 @@ recipe.post('/', authorization, (req, res) => {
                     newRecipe.pictures = pictures;
                 }
                 await new Recipe(newRecipe).save();
-                await RecipePrototpye.findOneAndRemove({ _id: prototype });
+                if (prototype) {
+                    await RecipePrototpye.findOneAndRemove({ _id: prototype });
+                }
                 res.send({ msg: 'created recipe successfully', id: recipeId });
             } catch (e) {
                 res.status(500).json({ msg: e.message });
@@ -214,7 +216,9 @@ recipe.put('/:id', authorization, (req, res) => {
                     { _id: req.params.id },
                     { $set: newRecipe, $inc: { updates: 1 } }
                 );
-                await RecipePrototpye.findOneAndRemove({ _id: prototype });
+                if (prototype) {
+                    await RecipePrototpye.findOneAndRemove({ _id: prototype });
+                }
                 res.send({
                     msg: 'updated recipe successfully',
                     id: req.params.id,
@@ -700,7 +704,7 @@ recipe.post('/prototype', authorization, async (req, res) => {
             user: req.user.id,
         };
         const prototype = await RecipePrototpye.findOneAndUpdate(
-            { recipe: id },
+            id ? { recipe: id } : { _id: mongoose.Types.ObjectId() },
             newRecipe,
             {
                 upsert: true,
