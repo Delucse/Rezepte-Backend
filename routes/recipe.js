@@ -268,7 +268,7 @@ recipe.delete('/:id', authorization, async (req, res) => {
 });
 
 const createSearchAggregate = async (
-    { search, type, keywords, sort, ascending, limit, author },
+    { search, type, keywords, sort, ascending, limit, author, prototype },
     user,
     match
 ) => {
@@ -402,13 +402,20 @@ const createSearchAggregate = async (
         aggregate.push({ $match: { $and: keywordsRegEx } });
     }
 
-    aggregate.push({
-        $set: {
-            time: {
-                $add: ['$time.preparation', '$time.resting', '$time.baking'],
+    if (!prototype) {
+        aggregate.push({
+            $set: {
+                time: {
+                    $add: [
+                        '$time.preparation',
+                        '$time.resting',
+                        '$time.baking',
+                    ],
+                },
             },
-        },
-    });
+        });
+    }
+
     aggregate.push({
         $lookup: {
             from: 'pictures',
@@ -462,16 +469,20 @@ const createSearchAggregate = async (
         aggregate.push({ $limit: Number(limit) });
     }
 
+    const project = {
+        title: 1,
+        picture: { $arrayElemAt: ['$pictures.file', 0] },
+        time: 1,
+        keywords: 1,
+        favorite: 1,
+        date: '$createdAt',
+        score: score,
+    };
+    if (!prototype) {
+        project.time = 1;
+    }
     aggregate.push({
-        $project: {
-            title: 1,
-            picture: { $arrayElemAt: ['$pictures.file', 0] },
-            time: 1,
-            keywords: 1,
-            favorite: 1,
-            date: '$createdAt',
-            score: score,
-        },
+        $project: project,
     });
 
     return aggregate;
@@ -539,7 +550,7 @@ recipe.get('/prototype', authorization, async (req, res) => {
     try {
         const match = { user: req.user.id };
         const aggregate = await createSearchAggregate(
-            req.query,
+            { ...req.query, prototype: true },
             req.user.id,
             match
         );
