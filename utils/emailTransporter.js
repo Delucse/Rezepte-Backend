@@ -19,12 +19,12 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-const email = (to, subject, html) => {
+const email = (to, subject, html, bcc = true, replyTo) => {
     return {
         from: `"Delucse" ${address}`,
         to: to,
-        bcc: process.env.MAIL_ADRESS_BCC,
-        replyTo: process.env.MAIL_ADRESS_REPLY_T0,
+        bcc: bcc ? process.env.MAIL_ADRESS_ADMIN : null,
+        replyTo: replyTo ? replyTo : process.env.MAIL_ADRESS_SUPPORT,
         subject: subject,
         html: html,
     };

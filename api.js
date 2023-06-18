@@ -56,6 +56,9 @@ apiRouter.use('/recipe/favorite', favoriteRouter);
 var noteRouter = require('./routes/note');
 apiRouter.use('/recipe/note', noteRouter);
 
+var mailRouter = require('./routes/mail');
+apiRouter.use('/mail', mailRouter);
+
 api.use(
     `/${
         process.env.MONGODB_URI || process.env.NODE_ENV === 'production'
