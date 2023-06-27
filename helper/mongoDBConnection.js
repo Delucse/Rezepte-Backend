@@ -7,6 +7,7 @@ const chalk = require('chalk');
 
 const connectMongoDB = async function (cb) {
     if (process.env.MONGODB_URI) {
+        mongoose.set('strictQuery', true);
         await mongoose
             .connect(`${process.env.MONGODB_URI}`, {
                 useNewUrlParser: true,
@@ -30,6 +31,7 @@ const connectMongoDB = async function (cb) {
                 console.log(chalk.red('Connection-Error: MongoDB'));
             });
     } else {
+        mongoose.set('strictQuery', true);
         await mongoose
             .connect('mongodb://127.0.0.1:27017/delucse', {
                 authSource: 'admin',

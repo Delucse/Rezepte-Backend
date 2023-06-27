@@ -12,9 +12,11 @@ const { createToken } = require('../helper/authorization');
 const { send, email } = require('../utils/emailTransporter');
 
 const verifyEmail = require('../templates/verifyEmail');
+const successVerifyEmail = require('../templates/successVerifyEmail');
+const newUser = require('../templates/newUser');
 
 const validate = require('../validators/index');
-const { signup, verification, signin, signout } = require('../validators/auth');
+const { signup, verification, signin } = require('../validators/auth');
 
 api.post('/signup', signup, validate, async (req, res) => {
     try {
@@ -38,6 +40,7 @@ api.post('/signup', signup, validate, async (req, res) => {
                 req.body.password,
                 process.env.PASSWORD_SECRET
             ).toString(),
+            relation: req.body.relation,
         });
 
         const token = jwt.sign(
@@ -88,6 +91,28 @@ api.post('/verification', verification, validate, async (req, res) => {
                         .status(403)
                         .json({ message: 'token is not valid' });
 
+                const authToken = jwt.sign(
+                    { id: user._id },
+                    process.env.AUTHORIZATION_TOKEN_SECRET
+                );
+
+                send(
+                    email(
+                        process.env.MAIL_ADRESS_ADMIN,
+                        'Nutzeranfrage',
+                        newUser(user.username, user.relation, authToken),
+                        false
+                    )
+                );
+
+                send(
+                    email(
+                        user.email,
+                        'E-Mail erfolgreich verifiziert',
+                        successVerifyEmail(user.username)
+                    )
+                );
+
                 res.status(200).json({
                     message: 'user is verified',
                 });
@@ -107,9 +132,6 @@ api.post('/signin', signin, validate, async (req, res) => {
                 .status(403)
                 .send({ message: 'username or password is wrong.' });
 
-        if (!user.verification)
-            return res.status(403).send({ message: 'user is not verified.' });
-
         // checking if password is correct
         const hashedPassword = cryptojs.AES.decrypt(
             user.password,
@@ -122,6 +144,12 @@ api.post('/signin', signin, validate, async (req, res) => {
             return res
                 .status(403)
                 .send({ message: 'username or password is wrong.' });
+
+        if (!user.verification)
+            return res.status(403).send({ message: 'user is not verified.' });
+
+        if (!user.authorization)
+            return res.status(403).send({ message: 'user is not authorized.' });
 
         // create access- and refresh-Token
         const { token: token, refreshToken: refreshToken } = await createToken(

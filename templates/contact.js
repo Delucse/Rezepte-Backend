@@ -25,6 +25,11 @@ module.exports = contactMail = (subject, message) => {
   </noscript>
   <![endif]-->
   <style>
+    @font-face {
+      font-family: 'Lobster Two';
+      font-weight: 700;
+      src: local('Lobster Two'), url(${url}/datei/LobsterTwo-Bold.ttf) format('truetype');
+    }
     table, td, div, h1, p {
       font-family: Arial, sans-serif;
     }
@@ -104,9 +109,9 @@ module.exports = contactMail = (subject, message) => {
             </tr>
             <tr>
               <td style="padding:30px;text-align:center;font-size:12px;background-color:#404040;color:#cccccc;">
-                <p style="margin:0;font-size:14px;line-height:20px;">mit Hunger erstellt &#127860; &copy; Delucse, ${moment().format(
+                <div style="margin:0;font-size:14px;line-height:20px;"><div style="font-size: 13px;">&copy; Delucse ${moment().format(
                     'YYYY'
-                )}</p>
+                )}</div><div style="font-family: Lobster Two;">mit Hunger erstellt</div></div>
               </td>
             </tr>
           </table>

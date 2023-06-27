@@ -17,6 +17,8 @@ const { authorization, invalidateToken } = require('../helper/authorization');
 
 const { send, email } = require('../utils/emailTransporter');
 
+const unauthorizedUser = require('../templates/unauthorizedUser');
+const authorizedUser = require('../templates/authorizedUser');
 const queryNewPassword = require('../templates/resetPassword');
 
 const validate = require('../validators/index');
@@ -25,7 +27,99 @@ const {
     setPassword,
     newPassword,
     deleteUser,
+    authorizationValidator,
 } = require('../validators/user');
+
+api.get('/authorization/:token', validate, async (req, res) => {
+    try {
+        const { token } = req.params;
+
+        jwt.verify(
+            token,
+            process.env.AUTHORIZATION_TOKEN_SECRET,
+            async (err, decoded) => {
+                if (err) {
+                    return res
+                        .status(403)
+                        .json({ message: 'token is not valid' });
+                }
+
+                const user = await User.findOneAndUpdate(
+                    {
+                        _id: decoded.id,
+                        verification: true,
+                        authorization: false,
+                    },
+                    { authorization: true }
+                );
+
+                if (!user)
+                    return res.status(403).json({
+                        message:
+                            'user does not exist, is not verified or is already authorized',
+                    });
+
+                send(
+                    email(
+                        user.email,
+                        'Nutzerkonto authorisiert',
+                        authorizedUser(user.username)
+                    )
+                );
+
+                res.status(200).json({
+                    message: 'user is authorized',
+                });
+            }
+        );
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+api.get('/unauthorization/:token', validate, async (req, res) => {
+    try {
+        const { token } = req.params;
+
+        jwt.verify(
+            token,
+            process.env.AUTHORIZATION_TOKEN_SECRET,
+            async (err, decoded) => {
+                if (err) {
+                    return res
+                        .status(403)
+                        .json({ message: 'token is not valid' });
+                }
+
+                const user = await User.findOneAndRemove({
+                    _id: decoded.id,
+                    verification: true,
+                    authorization: false,
+                });
+
+                if (!user)
+                    return res.status(403).json({
+                        message:
+                            'user does not exist, is not verified or is already authorized',
+                    });
+
+                send(
+                    email(
+                        user.email,
+                        'Nutzerkonto nicht authorisiert',
+                        unauthorizedUser(user.username)
+                    )
+                );
+
+                res.status(200).json({
+                    message: 'user is unauthorized',
+                });
+            }
+        );
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
 
 api.get('/', authorization, async (req, res) => {
     try {

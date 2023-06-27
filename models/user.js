@@ -18,6 +18,15 @@ const UserSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
+        relation: {
+            type: String,
+            required: true,
+        },
+        authorization: {
+            type: Boolean,
+            required: true,
+            default: false,
+        },
         verification: {
             type: Boolean,
             required: true,
@@ -34,6 +43,7 @@ UserSchema.index(
     {
         expireAfterSeconds: Number(process.env.VERIFY_TOKEN_EXPIRATION) - 59,
         partialFilterExpression: { verification: false },
+        name: 'expire',
     }
 );
 
@@ -41,14 +51,14 @@ const User = mongoose.model('User', UserSchema);
 
 const createIndex = async () => {
     const indexes = (await User.listIndexes()).filter(
-        (i) => i.name === 'createdAt_-1'
+        (i) => i.name === 'expire'
     );
     if (
         indexes.length > 0 &&
         indexes[0].expireAfterSeconds !==
             Number(process.env.VERIFY_TOKEN_EXPIRATION) - 59
     ) {
-        await User.collection.dropIndex('createdAt_-1');
+        await User.collection.dropIndex('expire');
         User.createIndexes();
     }
 };

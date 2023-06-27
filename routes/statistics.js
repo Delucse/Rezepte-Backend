@@ -80,7 +80,9 @@ const mostAggregation = (match) => {
 
 api.get('/', async function (req, res) {
     try {
-        const userCount = await User.aggregate(countAggregation);
+        const userCount = await User.aggregate(
+            [{ $match: { authorization: true } }].concat(countAggregation)
+        );
         const recipeCount = await Recipe.aggregate(countAggregation);
         const mostRecipes = await Recipe.aggregate(mostAggregation());
         const imageCount = await Picture.aggregate(countAggregation);

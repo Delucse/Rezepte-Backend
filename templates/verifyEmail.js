@@ -51,6 +51,11 @@ module.exports = verifyEmail = (name, token) => {
   </noscript>
   <![endif]-->
   <style>
+    @font-face {
+      font-family: 'Lobster Two';
+      font-weight: 700;
+      src: local('Lobster Two'), url(${url}/datei/LobsterTwo-Bold.ttf) format('truetype');
+    }
     table, td, div, h1, p {
       font-family: Arial, sans-serif;
     }
@@ -97,7 +102,7 @@ module.exports = verifyEmail = (name, token) => {
             <tr>
               <td style="padding:30px 30px 15px 30px;background-color:#ffffff;">
                 <h1 style="margin-top:0;margin-bottom:18px;font-size:26px;line-height:32px;font-weight:bold;letter-spacing:-0.02em;">Willkommen</h1>
-                <p style="margin-top:0;margin-bottom:18px;">Hallo ${name},<br/>wir freuen uns, dass du dich für Delucse registriert hast. Um die Rezepte-Welt uneingeschränkt  nutzen zu können, bestätige bitte deine E-Mail-Adresse.</p>
+                <p style="margin-top:0;margin-bottom:18px;">Hallo ${name},<br/>wir freuen uns, dass du dich für Delucse registriert hast. Um die Rezepte-Welt uneingeschränkt nutzen zu können, bestätige bitte deine E-Mail-Adresse. Wenn du das nicht warst, kannst du diese Nachricht einfach ignorieren.</p>
                 <p style="margin:0;"><a href="${url}/verifizierung/${token}" style="background: #e85917; text-decoration: none; padding: 10px 25px; color: #ffffff; border-radius: 0px; display:inline-block; mso-padding-alt:0;text-underline-color:#ff3884"><!--[if mso]><i style="letter-spacing: 25px;mso-font-width:-100%;mso-text-raise:20pt">&nbsp;</i><![endif]--><span style="mso-text-raise:10pt;font-weight:bold;">E-Mail verifizieren</span><!--[if mso]><i style="letter-spacing: 25px;mso-font-width:-100%">&nbsp;</i><![endif]--></a></p>
               </td>
             </tr>
@@ -133,9 +138,9 @@ module.exports = verifyEmail = (name, token) => {
             </tr>
             <tr>
               <td style="padding:30px;text-align:center;font-size:12px;background-color:#404040;color:#cccccc;">
-                <p style="margin:0;font-size:14px;line-height:20px;">mit Hunger erstellt &#127860; &copy; Delucse, ${moment().format(
+                <div style="margin:0;font-size:14px;line-height:20px;"><div style="font-size: 13px;">&copy; Delucse ${moment().format(
                     'YYYY'
-                )}</p>
+                )}</div><div style="font-family: Lobster Two;">mit Hunger erstellt</div></div>
               </td>
             </tr>
           </table>

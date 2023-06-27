@@ -1,5 +1,9 @@
 const { body, param } = require('express-validator');
 
+const authorization = [
+    param('token').not().isEmpty().withMessage('token is required'),
+];
+
 const resetPassword = [
     body('username').not().isEmpty().withMessage('username is required'),
 ];
@@ -66,6 +70,7 @@ const deleteUser = [
 ];
 
 module.exports = {
+    authorizationValidator: authorization,
     resetPassword,
     setPassword,
     newPassword,

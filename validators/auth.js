@@ -40,6 +40,15 @@ const signup = [
             }
             return true;
         }),
+
+    body('relation')
+        .not()
+        .isEmpty()
+        .withMessage('relation is required')
+        .bail()
+        .trim()
+        .isLength({ min: 3 })
+        .withMessage('relation must have minimum length of 3'),
 ];
 
 const verification = [
