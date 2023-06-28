@@ -2,7 +2,6 @@ var express = require('express');
 var image = express.Router();
 
 const upload = require('../utils/multer');
-const imageKit = require('../utils/imageKit');
 const sharp = require('sharp');
 const { authorization } = require('../helper/authorization');
 
@@ -27,40 +26,22 @@ image.post('/:recipeId', authorization, (req, res) => {
                 if (req.file) {
                     var newPic;
                     const filename = uuidv4() + '.webp';
-                    if (process.env.IMAGEKIT_PUBLIC_KEY) {
-                        const data = await sharp(req.file.buffer)
-                            .webp()
-                            .toBuffer();
-                        const file = await imageKit.upload({
-                            file: data,
-                            fileName: filename,
-                        });
-                        newPic = new Picture({
-                            _id: file.fileId,
-                            contentType: req.file.mimetype,
-                            size: req.file.size,
-                            file: file.name,
-                            user: req.user.id,
-                            recipe: req.params.recipeId,
-                        });
-                    } else {
-                        await sharp(req.file.buffer)
-                            .webp()
-                            .toFile(
-                                `${path.join(
-                                    __dirname,
-                                    '..',
-                                    process.env.MEDIA_PATH || 'public'
-                                )}/${filename}`
-                            );
-                        newPic = new Picture({
-                            contentType: req.file.mimetype,
-                            size: req.file.size,
-                            file: filename,
-                            user: req.user.id,
-                            recipe: req.params.recipeId,
-                        });
-                    }
+                    await sharp(req.file.buffer)
+                        .webp()
+                        .toFile(
+                            `${path.join(
+                                __dirname,
+                                '..',
+                                process.env.MEDIA_PATH || 'public'
+                            )}/${filename}`
+                        );
+                    newPic = new Picture({
+                        contentType: req.file.mimetype,
+                        size: req.file.size,
+                        file: filename,
+                        user: req.user.id,
+                        recipe: req.params.recipeId,
+                    });
                     const picture = await newPic.save();
                     await Recipe.findByIdAndUpdate(req.params.recipeId, {
                         $push: { pictures: picture._id },
@@ -166,23 +147,15 @@ image.delete('/:id', authorization, async (req, res) => {
             user: req.user.id,
         });
         if (deletedImage) {
-            if (process.env.IMAGEKIT_PUBLIC_KEY) {
-                try {
-                    await imageKit.deleteFile(deletedImage._id);
-                } catch (err) {
-                    // images are stored in two different folders: localhost and production
-                }
-            } else {
-                const folder = path.join(
-                    __dirname,
-                    '..',
-                    process.env.MEDIA_PATH || 'public'
-                );
-                try {
-                    await fs.unlink(`${folder}/${deletedImage.file}`);
-                } catch (err) {
-                    // images are stored in two different folders: localhost and production
-                }
+            const folder = path.join(
+                __dirname,
+                '..',
+                process.env.MEDIA_PATH || 'public'
+            );
+            try {
+                await fs.unlink(`${folder}/${deletedImage.file}`);
+            } catch (err) {
+                // images are stored in two different folders: localhost and production
             }
             const recipe = await Recipe.findByIdAndUpdate(deletedImage.recipe, {
                 $pull: { pictures: req.params.id },

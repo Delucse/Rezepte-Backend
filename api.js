@@ -22,12 +22,10 @@ api.set('view engine', 'hbs');
 api.use(bodyParser.json({ limit: '10mb', extended: true }));
 api.use(cookieParser());
 
-if (!process.env.IMAGEKIT_PUBLIC_KEY || process.env.MEDIA_ROUTE === 'true') {
-    api.use(
-        '/media',
-        express.static(path.join(__dirname, process.env.MEDIA_PATH || 'public'))
-    );
-}
+api.use(
+    '/media',
+    express.static(path.join(__dirname, process.env.MEDIA_PATH || 'public'))
+);
 
 var apiRouter = express.Router();
 var shareRouter = express.Router();

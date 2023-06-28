@@ -2,7 +2,6 @@ var express = require('express');
 var recipe = express.Router();
 
 const upload = require('../utils/multer');
-const imageKit = require('../utils/imageKit');
 const sharp = require('sharp');
 const { authorization, getUser } = require('../helper/authorization');
 
@@ -52,40 +51,22 @@ recipe.post('/', authorization, (req, res) => {
                     const promises = req.files.map(async (file) => {
                         var newPic;
                         const filename = uuidv4() + '.webp';
-                        if (process.env.IMAGEKIT_PUBLIC_KEY) {
-                            const data = await sharp(file.buffer)
-                                .webp()
-                                .toBuffer();
-                            const imageFile = await imageKit.upload({
-                                file: data,
-                                fileName: filename,
-                            });
-                            newPic = new Picture({
-                                _id: imageFile.fileId,
-                                contentType: file.mimetype,
-                                size: file.size,
-                                file: imageFile.name,
-                                user: req.user.id,
-                                recipe: recipeId,
-                            });
-                        } else {
-                            await sharp(file.buffer)
-                                .webp()
-                                .toFile(
-                                    `${path.join(
-                                        __dirname,
-                                        '..',
-                                        process.env.MEDIA_PATH || 'public'
-                                    )}/${filename}`
-                                );
-                            newPic = new Picture({
-                                contentType: file.mimetype,
-                                size: file.size,
-                                file: filename,
-                                user: req.user.id,
-                                recipe: recipeId,
-                            });
-                        }
+                        await sharp(file.buffer)
+                            .webp()
+                            .toFile(
+                                `${path.join(
+                                    __dirname,
+                                    '..',
+                                    process.env.MEDIA_PATH || 'public'
+                                )}/${filename}`
+                            );
+                        newPic = new Picture({
+                            contentType: file.mimetype,
+                            size: file.size,
+                            file: filename,
+                            user: req.user.id,
+                            recipe: recipeId,
+                        });
                         return newPic.save().then((pic) => pic._id); // return the promise without calling it yet
                     });
                     const pictures = await Promise.all(promises);
@@ -138,40 +119,22 @@ recipe.put('/:id', authorization, (req, res) => {
                     const promises = req.files.map(async (file) => {
                         var newPic;
                         const filename = uuidv4() + '.webp';
-                        if (process.env.IMAGEKIT_PUBLIC_KEY) {
-                            const data = await sharp(file.buffer)
-                                .webp()
-                                .toBuffer();
-                            const imageFile = await imageKit.upload({
-                                file: data,
-                                fileName: filename,
-                            });
-                            var newPic = new Picture({
-                                _id: imageFile.fileId,
-                                contentType: file.mimetype,
-                                size: file.size,
-                                file: imageFile.name,
-                                user: req.user.id,
-                                recipe: req.params.id,
-                            });
-                        } else {
-                            await sharp(file.buffer)
-                                .webp()
-                                .toFile(
-                                    `${path.join(
-                                        __dirname,
-                                        '..',
-                                        process.env.MEDIA_PATH || 'public'
-                                    )}/${filename}`
-                                );
-                            newPic = new Picture({
-                                contentType: file.mimetype,
-                                size: file.size,
-                                file: filename,
-                                user: req.user.id,
-                                recipe: req.params.id,
-                            });
-                        }
+                        await sharp(file.buffer)
+                            .webp()
+                            .toFile(
+                                `${path.join(
+                                    __dirname,
+                                    '..',
+                                    process.env.MEDIA_PATH || 'public'
+                                )}/${filename}`
+                            );
+                        newPic = new Picture({
+                            contentType: file.mimetype,
+                            size: file.size,
+                            file: filename,
+                            user: req.user.id,
+                            recipe: req.params.id,
+                        });
                         return newPic.save().then((pic) => pic._id); // return the promise without calling it yet
                     });
                     const pictures = await Promise.all(promises);
@@ -189,13 +152,7 @@ recipe.put('/:id', authorization, (req, res) => {
                             user: req.user.id,
                         });
                         if (deletedPicture) {
-                            if (process.env.IMAGEKIT_PUBLIC_KEY) {
-                                await imageKit.deleteFile(deletedPicture._id);
-                            } else {
-                                await fs.unlink(
-                                    `${folder}/${deletedPicture.file}`
-                                );
-                            }
+                            await fs.unlink(`${folder}/${deletedPicture.file}`);
                         }
                     });
                 }
@@ -248,11 +205,7 @@ recipe.delete('/:id', authorization, async (req, res) => {
                     user: req.user.id,
                 });
                 if (deletedPicture) {
-                    if (process.env.IMAGEKIT_PUBLIC_KEY) {
-                        await imageKit.deleteFile(deletedPicture._id);
-                    } else {
-                        await fs.unlink(`${folder}/${deletedPicture.file}`);
-                    }
+                    await fs.unlink(`${folder}/${deletedPicture.file}`);
                 }
             });
             await RecipeUser.deleteMany({

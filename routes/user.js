@@ -11,8 +11,6 @@ const cryptojs = require('crypto-js');
 const path = require('path');
 const fs = require('fs').promises;
 
-const imageKit = require('../utils/imageKit');
-
 const { authorization, invalidateToken } = require('../helper/authorization');
 
 const { send, email } = require('../utils/emailTransporter');
@@ -279,11 +277,7 @@ api.delete('/', authorization, deleteUser, validate, async (req, res) => {
                         user: req.user.id,
                     });
                     if (deletedPicture) {
-                        if (process.env.IMAGEKIT_PUBLIC_KEY) {
-                            await imageKit.deleteFile(deletedPicture._id);
-                        } else {
-                            await fs.unlink(`${folder}/${deletedPicture.file}`);
-                        }
+                        await fs.unlink(`${folder}/${deletedPicture.file}`);
                     }
                     await RecipeUser.deleteMany({
                         recipe: deletedRecipe._id,
@@ -295,18 +289,10 @@ api.delete('/', authorization, deleteUser, validate, async (req, res) => {
         await Picture.deleteMany({ user: req.user.id });
         if (deletedImages) {
             deletedImages.forEach(async (deletedImage) => {
-                if (process.env.IMAGEKIT_PUBLIC_KEY) {
-                    try {
-                        await imageKit.deleteFile(deletedImage._id);
-                    } catch (err) {
-                        // images are stored in two different folders: localhost and production
-                    }
-                } else {
-                    try {
-                        await fs.unlink(`${folder}/${deletedImage.file}`);
-                    } catch (err) {
-                        // images are stored in two different folders: localhost and production
-                    }
+                try {
+                    await fs.unlink(`${folder}/${deletedImage.file}`);
+                } catch (err) {
+                    // images are stored in two different folders: localhost and production
                 }
                 await Recipe.findByIdAndUpdate(deletedImage.recipe, {
                     $pull: { pictures: deletedImage._id },
