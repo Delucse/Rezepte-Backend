@@ -12,6 +12,11 @@ const { v4: uuidv4 } = require('uuid');
 const Picture = require('../models/picture');
 const Recipe = require('../models/recipe');
 
+const folder = path.join(__dirname, '..', process.env.MEDIA_PATH || 'public');
+const fileExtension = 'webp';
+
+sharp.cache(false);
+
 image.post('/:recipeId', authorization, (req, res) => {
     upload.single('picture')(req, res, async (err) => {
         if (err) {
@@ -24,28 +29,39 @@ image.post('/:recipeId', authorization, (req, res) => {
         } else {
             try {
                 if (req.file) {
-                    var newPic;
-                    const filename = uuidv4() + '.webp';
-                    await sharp(req.file.buffer)
+                    const fileName = uuidv4();
+                    const pic = await sharp(req.file.buffer)
                         .webp()
-                        .toFile(
-                            `${path.join(
-                                __dirname,
-                                '..',
-                                process.env.MEDIA_PATH || 'public'
-                            )}/${filename}`
-                        );
-                    newPic = new Picture({
-                        contentType: req.file.mimetype,
-                        size: req.file.size,
-                        file: filename,
+                        .toFile(`${folder}/${fileName}.${fileExtension}`);
+                    var newPic = new Picture({
+                        contentType: `image/${pic.format}`,
+                        size: pic.size,
+                        file: `${fileName}.${fileExtension}`,
                         user: req.user.id,
                         recipe: req.params.recipeId,
                     });
                     const picture = await newPic.save();
-                    await Recipe.findByIdAndUpdate(req.params.recipeId, {
-                        $push: { pictures: picture._id },
-                    });
+                    const recipe = await Recipe.findByIdAndUpdate(
+                        req.params.recipeId,
+                        {
+                            $push: { pictures: picture._id },
+                        },
+                        { new: false }
+                    );
+                    if (recipe.pictures.length === 0) {
+                        await sharp(`${folder}/${fileName}.${fileExtension}`)
+                            .resize({ width: 1200, height: 630, fit: 'cover' })
+                            .composite([
+                                {
+                                    input: `${folder}/logo_256.svg`,
+                                    top: 630 - 256 - 50,
+                                    left: 1200 - 256 - 50,
+                                },
+                            ])
+                            .toFile(
+                                `${folder}/${req.params.recipeId}.${fileExtension}`
+                            );
+                    }
                     res.send({
                         msg: 'added recipe image successfully',
                         image: {
@@ -147,19 +163,43 @@ image.delete('/:id', authorization, async (req, res) => {
             user: req.user.id,
         });
         if (deletedImage) {
-            const folder = path.join(
-                __dirname,
-                '..',
-                process.env.MEDIA_PATH || 'public'
-            );
             try {
                 await fs.unlink(`${folder}/${deletedImage.file}`);
             } catch (err) {
-                // images are stored in two different folders: localhost and production
+                console.error(err);
             }
-            const recipe = await Recipe.findByIdAndUpdate(deletedImage.recipe, {
-                $pull: { pictures: req.params.id },
-            });
+            const recipe = await Recipe.findByIdAndUpdate(
+                deletedImage.recipe,
+                {
+                    $pull: { pictures: req.params.id },
+                },
+                { new: false }
+            );
+            try {
+                if (recipe.pictures.length === 1) {
+                    await fs.unlink(
+                        `${folder}/${deletedImage.recipe}.${fileExtension}`
+                    );
+                } else if (recipe.pictures.indexOf(req.params.id) === 0) {
+                    const newPreview = await Picture.findById(
+                        recipe.pictures[1]
+                    );
+                    await sharp(`${folder}/${newPreview.file}`)
+                        .resize({ width: 1200, height: 630, fit: 'cover' })
+                        .composite([
+                            {
+                                input: `${folder}/logo_256.svg`,
+                                top: 630 - 256 - 50,
+                                left: 1200 - 256 - 50,
+                            },
+                        ])
+                        .toFile(
+                            `${folder}/${deletedImage.recipe}.${fileExtension}`
+                        );
+                }
+            } catch (err) {
+                console.error(err);
+            }
             res.send({ msg: 'deleted image successfully' });
         } else {
             res.status(400).json({ msg: 'user does not match.' });

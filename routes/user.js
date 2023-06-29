@@ -5,11 +5,13 @@ const User = require('../models/user');
 const Recipe = require('../models/recipe');
 const Picture = require('../models/picture');
 const RecipeUser = require('../models/recipeUser');
+const RecipePrototpye = require('../models/recipePrototype');
 
 const jwt = require('jsonwebtoken');
 const cryptojs = require('crypto-js');
 const path = require('path');
 const fs = require('fs').promises;
+const sharp = require('sharp');
 
 const { authorization, invalidateToken } = require('../helper/authorization');
 
@@ -28,96 +30,111 @@ const {
     authorizationValidator,
 } = require('../validators/user');
 
-api.get('/authorization/:token', validate, async (req, res) => {
-    try {
-        const { token } = req.params;
+const folder = path.join(__dirname, '..', process.env.MEDIA_PATH || 'public');
+const fileExtension = 'webp';
 
-        jwt.verify(
-            token,
-            process.env.AUTHORIZATION_TOKEN_SECRET,
-            async (err, decoded) => {
-                if (err) {
-                    return res
-                        .status(403)
-                        .json({ message: 'token is not valid' });
+sharp.cache(false);
+
+api.get(
+    '/authorization/:token',
+    authorizationValidator,
+    validate,
+    async (req, res) => {
+        try {
+            const { token } = req.params;
+
+            jwt.verify(
+                token,
+                process.env.AUTHORIZATION_TOKEN_SECRET,
+                async (err, decoded) => {
+                    if (err) {
+                        return res
+                            .status(403)
+                            .json({ message: 'token is not valid' });
+                    }
+
+                    const user = await User.findOneAndUpdate(
+                        {
+                            _id: decoded.id,
+                            verification: true,
+                            authorization: false,
+                        },
+                        { authorization: true }
+                    );
+
+                    if (!user)
+                        return res.status(403).json({
+                            message:
+                                'user does not exist, is not verified or is already authorized',
+                        });
+
+                    send(
+                        email(
+                            user.email,
+                            'Nutzerkonto authorisiert',
+                            authorizedUser(user.username)
+                        )
+                    );
+
+                    res.status(200).json({
+                        message: 'user is authorized',
+                    });
                 }
+            );
+        } catch (err) {
+            res.status(500).json({ message: err.message });
+        }
+    }
+);
 
-                const user = await User.findOneAndUpdate(
-                    {
+api.get(
+    '/unauthorization/:token',
+    authorizationValidator,
+    validate,
+    async (req, res) => {
+        try {
+            const { token } = req.params;
+
+            jwt.verify(
+                token,
+                process.env.AUTHORIZATION_TOKEN_SECRET,
+                async (err, decoded) => {
+                    if (err) {
+                        return res
+                            .status(403)
+                            .json({ message: 'token is not valid' });
+                    }
+
+                    const user = await User.findOneAndRemove({
                         _id: decoded.id,
                         verification: true,
                         authorization: false,
-                    },
-                    { authorization: true }
-                );
-
-                if (!user)
-                    return res.status(403).json({
-                        message:
-                            'user does not exist, is not verified or is already authorized',
                     });
 
-                send(
-                    email(
-                        user.email,
-                        'Nutzerkonto authorisiert',
-                        authorizedUser(user.username)
-                    )
-                );
+                    if (!user)
+                        return res.status(403).json({
+                            message:
+                                'user does not exist, is not verified or is already authorized',
+                        });
 
-                res.status(200).json({
-                    message: 'user is authorized',
-                });
-            }
-        );
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
+                    send(
+                        email(
+                            user.email,
+                            'Nutzerkonto nicht authorisiert',
+                            unauthorizedUser(user.username)
+                        )
+                    );
 
-api.get('/unauthorization/:token', validate, async (req, res) => {
-    try {
-        const { token } = req.params;
-
-        jwt.verify(
-            token,
-            process.env.AUTHORIZATION_TOKEN_SECRET,
-            async (err, decoded) => {
-                if (err) {
-                    return res
-                        .status(403)
-                        .json({ message: 'token is not valid' });
+                    res.status(200).json({
+                        message: 'user is unauthorized',
+                    });
                 }
-
-                const user = await User.findOneAndRemove({
-                    _id: decoded.id,
-                    verification: true,
-                    authorization: false,
-                });
-
-                if (!user)
-                    return res.status(403).json({
-                        message:
-                            'user does not exist, is not verified or is already authorized',
-                    });
-
-                send(
-                    email(
-                        user.email,
-                        'Nutzerkonto nicht authorisiert',
-                        unauthorizedUser(user.username)
-                    )
-                );
-
-                res.status(200).json({
-                    message: 'user is unauthorized',
-                });
-            }
-        );
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+            );
+        } catch (err) {
+            res.status(500).json({ message: err.message });
+        }
     }
-});
+);
 
 api.get('/', authorization, async (req, res) => {
     try {
@@ -264,25 +281,25 @@ api.delete('/', authorization, deleteUser, validate, async (req, res) => {
         await Recipe.deleteMany({
             user: req.user.id,
         });
-        const folder = path.join(
-            __dirname,
-            '..',
-            process.env.MEDIA_PATH || 'public'
-        );
         if (deletedRecipes) {
             deletedRecipes.forEach(async (deletedRecipe) => {
-                deletedRecipe.pictures.forEach(async (picId) => {
-                    const deletedPicture = await Picture.findOneAndRemove({
-                        _id: picId,
-                        user: req.user.id,
+                try {
+                    deletedRecipe.pictures.forEach(async (picId) => {
+                        const deletedPicture = await Picture.findOneAndRemove({
+                            _id: picId,
+                            user: req.user.id,
+                        });
+                        if (deletedPicture) {
+                            await fs.unlink(`${folder}/${deletedPicture.file}`);
+                        }
                     });
-                    if (deletedPicture) {
-                        await fs.unlink(`${folder}/${deletedPicture.file}`);
-                    }
+                    await fs.unlink(
+                        `${folder}/${deletedRecipe._id}.${fileExtension}`
+                    );
                     await RecipeUser.deleteMany({
                         recipe: deletedRecipe._id,
                     });
-                });
+                } catch (error) {}
             });
         }
         const deletedImages = await Picture.find({ user: req.user.id });
@@ -291,14 +308,42 @@ api.delete('/', authorization, deleteUser, validate, async (req, res) => {
             deletedImages.forEach(async (deletedImage) => {
                 try {
                     await fs.unlink(`${folder}/${deletedImage.file}`);
+                    const recipe = await Recipe.findByIdAndUpdate(
+                        deletedImage.recipe,
+                        {
+                            $pull: { pictures: deletedImage._id },
+                        },
+                        { new: false }
+                    );
+                    if (recipe.pictures.length === 1) {
+                        await fs.unlink(
+                            `${folder}/${deletedImage.recipe}.${fileExtension}`
+                        );
+                    } else if (
+                        recipe.pictures.indexOf(deletedImage._id) === 0
+                    ) {
+                        const newPreview = await Picture.findById(
+                            recipe.pictures[1]
+                        );
+                        await sharp(`${folder}/${newPreview.file}`)
+                            .resize({ width: 1200, height: 630, fit: 'cover' })
+                            .composite([
+                                {
+                                    input: `${folder}/logo_256.svg`,
+                                    top: 630 - 256 - 50,
+                                    left: 1200 - 256 - 50,
+                                },
+                            ])
+                            .toFile(
+                                `${folder}/${deletedImage.recipe}.${fileExtension}`
+                            );
+                    }
                 } catch (err) {
-                    // images are stored in two different folders: localhost and production
+                    console.error(err);
                 }
-                await Recipe.findByIdAndUpdate(deletedImage.recipe, {
-                    $pull: { pictures: deletedImage._id },
-                });
             });
         }
+        await RecipePrototpye.deleteMany({ user: req.user.id });
         await RecipeUser.deleteMany({ user: req.user.id });
         await User.findOneAndRemove({ _id: req.user.id });
 

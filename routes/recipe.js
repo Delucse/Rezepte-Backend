@@ -16,6 +16,11 @@ const User = require('../models/user');
 const RecipeUser = require('../models/recipeUser');
 const RecipePrototpye = require('../models/recipePrototype');
 
+const folder = path.join(__dirname, '..', process.env.MEDIA_PATH || 'public');
+const fileExtension = 'webp';
+
+sharp.cache(false);
+
 recipe.post('/', authorization, (req, res) => {
     upload.array('pictures')(req, res, async (err) => {
         if (err) {
@@ -48,25 +53,38 @@ recipe.post('/', authorization, (req, res) => {
                     user: req.user.id,
                 };
                 if (req.files) {
-                    const promises = req.files.map(async (file) => {
-                        var newPic;
-                        const filename = uuidv4() + '.webp';
-                        await sharp(file.buffer)
+                    const promises = req.files.map(async (file, index) => {
+                        const fileName = uuidv4();
+                        const pic = await sharp(file.buffer)
                             .webp()
-                            .toFile(
-                                `${path.join(
-                                    __dirname,
-                                    '..',
-                                    process.env.MEDIA_PATH || 'public'
-                                )}/${filename}`
-                            );
-                        newPic = new Picture({
-                            contentType: file.mimetype,
-                            size: file.size,
-                            file: filename,
+                            .toFile(`${folder}/${fileName}.${fileExtension}`);
+                        var newPic = new Picture({
+                            contentType: `image/${pic.format}`,
+                            size: pic.size,
+                            file: `${fileName}.${fileExtension}`,
                             user: req.user.id,
                             recipe: recipeId,
                         });
+                        if (index === 0) {
+                            await sharp(
+                                `${folder}/${fileName}.${fileExtension}`
+                            )
+                                .resize({
+                                    width: 1200,
+                                    height: 630,
+                                    fit: 'cover',
+                                })
+                                .composite([
+                                    {
+                                        input: `${folder}/logo_256.svg`,
+                                        top: 630 - 256 - 50,
+                                        left: 1200 - 256 - 50,
+                                    },
+                                ])
+                                .toFile(
+                                    `${folder}/${recipeId}.${fileExtension}`
+                                );
+                        }
                         return newPic.save().then((pic) => pic._id); // return the promise without calling it yet
                     });
                     const pictures = await Promise.all(promises);
@@ -117,21 +135,14 @@ recipe.put('/:id', authorization, (req, res) => {
                 var pictureIds = [];
                 if (req.files) {
                     const promises = req.files.map(async (file) => {
-                        var newPic;
-                        const filename = uuidv4() + '.webp';
-                        await sharp(file.buffer)
+                        const fileName = uuidv4();
+                        const pic = await sharp(file.buffer)
                             .webp()
-                            .toFile(
-                                `${path.join(
-                                    __dirname,
-                                    '..',
-                                    process.env.MEDIA_PATH || 'public'
-                                )}/${filename}`
-                            );
-                        newPic = new Picture({
-                            contentType: file.mimetype,
-                            size: file.size,
-                            file: filename,
+                            .toFile(`${folder}/${fileName}.${fileExtension}`);
+                        var newPic = new Picture({
+                            contentType: `image/${pic.format}`,
+                            size: pic.size,
+                            file: `${fileName}.${fileExtension}`,
                             user: req.user.id,
                             recipe: req.params.id,
                         });
@@ -141,11 +152,6 @@ recipe.put('/:id', authorization, (req, res) => {
                     pictureIds = pictures;
                 }
                 if (removedPictures && removedPictures.length > 0) {
-                    const folder = path.join(
-                        __dirname,
-                        '..',
-                        process.env.MEDIA_PATH || 'public'
-                    );
                     removedPictures.forEach(async (pic) => {
                         const deletedPicture = await Picture.findOneAndRemove({
                             _id: pic,
@@ -168,19 +174,47 @@ recipe.put('/:id', authorization, (req, res) => {
                     }
                     newRecipe.pictures = picturesOrder;
                 }
-
-                await Recipe.updateOne(
-                    { _id: req.params.id },
-                    { $set: newRecipe, $inc: { updates: 1 } }
+                const oldRecipe = await Recipe.findByIdAndUpdate(
+                    req.params.id,
+                    { $set: newRecipe, $inc: { updates: 1 } },
+                    { new: false }
                 );
                 if (prototype) {
                     await RecipePrototpye.findOneAndRemove({ _id: prototype });
+                }
+                if (
+                    removedPictures &&
+                    oldRecipe.pictures.length === removedPictures.length
+                ) {
+                    await fs.unlink(
+                        `${folder}/${req.params.id}.${fileExtension}`
+                    );
+                } else if (
+                    newRecipe.pictures &&
+                    newRecipe.pictures.length > 0 &&
+                    (oldRecipe.pictures.length === 0 ||
+                        oldRecipe.pictures[0] !== newRecipe.pictures[0])
+                ) {
+                    const newPreview = await Picture.findById(
+                        newRecipe.pictures[0]
+                    );
+                    await sharp(`${folder}/${newPreview.file}`)
+                        .resize({ width: 1200, height: 630, fit: 'cover' })
+                        .composite([
+                            {
+                                input: `${folder}/logo_256.svg`,
+                                top: 630 - 256 - 50,
+                                left: 1200 - 256 - 50,
+                            },
+                        ])
+                        .toFile(`${folder}/${req.params.id}.${fileExtension}`);
                 }
                 res.send({
                     msg: 'updated recipe successfully',
                     id: req.params.id,
                 });
             } catch (e) {
+                console.error(e);
                 res.status(500).json({ msg: e.message });
             }
         }
@@ -194,11 +228,6 @@ recipe.delete('/:id', authorization, async (req, res) => {
             user: req.user.id,
         });
         if (deletedRecipe) {
-            const folder = path.join(
-                __dirname,
-                '..',
-                process.env.MEDIA_PATH || 'public'
-            );
             deletedRecipe.pictures.forEach(async (picId) => {
                 const deletedPicture = await Picture.findOneAndRemove({
                     _id: picId,
@@ -208,6 +237,7 @@ recipe.delete('/:id', authorization, async (req, res) => {
                     await fs.unlink(`${folder}/${deletedPicture.file}`);
                 }
             });
+            await fs.unlink(`${folder}/${deletedRecipe._id}.${fileExtension}`);
             await RecipeUser.deleteMany({
                 recipe: deletedRecipe._id,
             });
