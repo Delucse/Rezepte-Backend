@@ -10,6 +10,7 @@ var http = require('http');
 var chalk = require('chalk');
 
 const { connectMongoDB } = require('../helper/mongoDBConnection');
+const { createPreviews } = require('../helper/createRecipePreviews');
 
 /**
  * Get port from environment and store in Express.
@@ -22,6 +23,9 @@ api.set('port', port);
  * First connect to MongoDB and then start API-server, then request extreme Weather and finally start APP
  */
 connectMongoDB(function () {
+    // add missing recipe previews
+    createPreviews();
+
     /**
      * Create HTTP server.
      */
