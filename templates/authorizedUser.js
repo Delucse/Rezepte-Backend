@@ -57,8 +57,8 @@ module.exports = authorizedUser = (name) => {
     }
   </style>
 </head>
-<body style="margin:0;padding:0;word-spacing:normal;background-color:#939297;">
-  <div role="article" aria-roledescription="email" lang="en" style="text-size-adjust:100%;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;background-color:#939297;">
+<body style="margin:0;padding:0;word-spacing:normal;background-color:#dddddd;">
+  <div role="article" aria-roledescription="email" lang="en" style="text-size-adjust:100%;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;background-color:#dddddd;">
     <table role="presentation" style="width:100%;border:none;border-spacing:0;">
       <tr>
         <td align="center" style="padding:0;">
@@ -104,10 +104,18 @@ module.exports = authorizedUser = (name) => {
               </td>
             </tr>
             <tr>
-              <td style="padding:30px;text-align:center;font-size:12px;background-color:#404040;color:#cccccc;">
-                <div style="margin:0;font-size:14px;line-height:20px;"><div style="font-size: 13px;">&copy; Delucse ${moment().format(
-                    'YYYY'
-                )}</div><div style="font-family: Lobster Two;">mit Hunger erstellt</div></div>
+              <td style="padding:30px;padding-top:10px;text-align:center;font-size:12px;background-color:#bdbdbd;">
+				        <div style="margin-top:10px;">
+                  <a href="${url}/impressum" style="color:#555555;text-decoration:underline;margin-right:5px;">Impressum</a>
+                  <a href="${url}/datenschutz" style="color:#555555;text-decoration:underline;margin-right:5px;">Datenschutz</a>
+                  <a href="${url}/kontakt" style="color:#555555;text-decoration:underline;margin-right:5px;">Kontakt</a>
+                </div>
+                <div style="margin:0;font-size:14px;line-height:20px;color:#E85917;">
+                  <div style="font-size: 13px;">
+                    &copy; Delucse ${moment().format('YYYY')}
+                  </div>
+                  <div style="font-family: Lobster Two;">mit Hunger erstellt</div>
+                </div>
               </td>
             </tr>
           </table>

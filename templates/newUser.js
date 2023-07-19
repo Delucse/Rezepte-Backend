@@ -58,8 +58,8 @@ module.exports = newUser = (user, relation, token) => {
     }
   </style>
 </head>
-<body style="margin:0;padding:0;word-spacing:normal;background-color:#939297;">
-  <div role="article" aria-roledescription="email" lang="en" style="text-size-adjust:100%;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;background-color:#939297;">
+<body style="margin:0;padding:0;word-spacing:normal;background-color:#dddddd;">
+  <div role="article" aria-roledescription="email" lang="en" style="text-size-adjust:100%;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;background-color:#dddddd;">
     <table role="presentation" style="width:100%;border:none;border-spacing:0;">
       <tr>
         <td align="center" style="padding:0;">
@@ -71,7 +71,7 @@ module.exports = newUser = (user, relation, token) => {
           <table role="presentation" style="width:94%;max-width:600px;border:none;border-spacing:0;text-align:left;font-family:Arial,sans-serif;font-size:16px;line-height:22px;color:#363636;">
             <tr>
               <td style="padding:40px 30px 30px 30px;text-align:left;font-size:24px;font-weight:bold;padding: 30px;background-color:darkgreen;">
-                <a href="${url}" style="text-decoration:none;"><img src="${url}/datei/logo_font.png" width="150" alt="Delucse" style="width:150px;max-width:70%;height:auto;border:none;text-decoration:none;color:#ffffff;"></a>
+                <a href="${url}" style="text-decoration:none;"><img src="${appUrl}/datei/logo_font.png" width="150" alt="Delucse" style="width:150px;max-width:70%;height:auto;border:none;text-decoration:none;color:#ffffff;"></a>
               </td>
             </tr>
             <tr>
@@ -98,7 +98,7 @@ module.exports = newUser = (user, relation, token) => {
                 <td style="width:125px;padding-bottom:20px;padding-left:20px" valign="top">
                 <![endif]-->
                 <div class="col-sml" style="display:inline-block;width:100%;max-width:125px !important;vertical-align:top;text-align:left;font-family:Arial,sans-serif;font-size:14px;color:#363636;">
-                  <img src="${url}/datei/logo115_color.png" width="115" alt="" style="width:125px;max-width:80%;margin-bottom:20px;margin-left:20px">
+                  <img src="${appUrl}/datei/logo115_color.png" width="115" alt="" style="width:125px;max-width:80%;margin-bottom:20px;margin-left:20px">
                 </div>
                 <!--[if mso]>
                 </td>
@@ -108,10 +108,18 @@ module.exports = newUser = (user, relation, token) => {
               </td>
             </tr>
             <tr>
-              <td style="padding:30px;text-align:center;font-size:12px;background-color:#404040;color:#cccccc;">
-                <div style="margin:0;font-size:14px;line-height:20px;"><div style="font-size: 13px;">&copy; Delucse ${moment().format(
-                    'YYYY'
-                )}</div><div style="font-family: Lobster Two;">mit Hunger erstellt</div></div>
+              <td style="padding:30px;padding-top:10px;text-align:center;font-size:12px;background-color:#bdbdbd;">
+				        <div style="margin-top:10px;">
+                  <a href="${appUrl}/impressum" style="color:#555555;text-decoration:underline;margin-right:5px;">Impressum</a>
+                  <a href="${appUrl}/datenschutz" style="color:#555555;text-decoration:underline;margin-right:5px;">Datenschutz</a>
+                  <a href="${appUrl}/kontakt" style="color:#555555;text-decoration:underline;margin-right:5px;">Kontakt</a>
+                </div>
+                <div style="margin:0;font-size:14px;line-height:20px;color:#E85917;">
+                  <div style="font-size: 13px;">
+                    &copy; Delucse ${moment().format('YYYY')}
+                  </div>
+                  <div style="font-family: Lobster Two;">mit Hunger erstellt</div>
+                </div>
               </td>
             </tr>
           </table>
