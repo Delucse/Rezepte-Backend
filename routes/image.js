@@ -74,6 +74,7 @@ image.post('/:recipeId', authorization, (req, res) => {
                     res.status(400).json({ msg: 'No image' });
                 }
             } catch (e) {
+                console.error(e.message);
                 res.status(500).json({ msg: e.message });
             }
         }
@@ -114,6 +115,7 @@ image.get('/', async (req, res) => {
         ]);
         res.send(image);
     } catch (e) {
+        console.error(e.message);
         res.status(500).json({ msg: e.message });
     }
 });
@@ -152,6 +154,7 @@ image.get('/user', authorization, async (req, res) => {
         ]);
         res.send(image);
     } catch (e) {
+        console.error(e.message);
         res.status(500).json({ msg: e.message });
     }
 });
@@ -205,6 +208,7 @@ image.delete('/:id', authorization, async (req, res) => {
             res.status(400).json({ msg: 'user does not match.' });
         }
     } catch (e) {
+        console.error(e.message);
         res.status(500).json({ msg: e.message });
     }
 });

@@ -28,6 +28,7 @@ favorite.post(
                 msg: 'created recipe favorite successfully',
             });
         } catch (e) {
+            console.error(e.message);
             res.status(500).json({ msg: e.message });
         }
     }
@@ -52,6 +53,7 @@ favorite.delete(
                 });
             }
         } catch (e) {
+            console.error(e.message);
             res.status(500).json({ msg: e.message });
         }
     }

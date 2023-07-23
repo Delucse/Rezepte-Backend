@@ -63,6 +63,7 @@ api.post('/signup', signup, validate, async (req, res) => {
 
         res.status(200).json({ message: 'user is registered' });
     } catch (err) {
+        console.error(err.message);
         res.status(500).json({ message: err.message });
     }
 });
@@ -119,6 +120,7 @@ api.post('/verification', verification, validate, async (req, res) => {
             }
         );
     } catch (err) {
+        console.error(err.message);
         res.status(500).json({ message: err.message });
     }
 });
@@ -169,6 +171,7 @@ api.post('/signin', signin, validate, async (req, res) => {
             token: token,
         });
     } catch (err) {
+        console.error(err.message);
         res.status(500).json({ message: err.message });
     }
 });
@@ -184,6 +187,7 @@ api.post('/signout', async (req, res) => {
         });
         res.status(200).json({ message: 'signed out' });
     } catch (err) {
+        console.error(err.message);
         res.status(500).json({ message: err.message });
     }
 });
@@ -227,6 +231,7 @@ api.post('/refresh', async (req, res) => {
             }
         );
     } catch (err) {
+        console.error(err.message);
         res.status(500).json({ message: err.message });
     }
 });

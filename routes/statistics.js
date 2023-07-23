@@ -171,6 +171,7 @@ api.get('/', async function (req, res) {
             },
         });
     } catch (e) {
+        console.error(e.message);
         res.status(500).json({ msg: e.message });
     }
 });

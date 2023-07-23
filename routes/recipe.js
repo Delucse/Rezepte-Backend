@@ -96,6 +96,7 @@ recipe.post('/', authorization, (req, res) => {
                 }
                 res.send({ msg: 'created recipe successfully', id: recipeId });
             } catch (e) {
+                console.error(e.message);
                 res.status(500).json({ msg: e.message });
             }
         }
@@ -214,7 +215,7 @@ recipe.put('/:id', authorization, (req, res) => {
                     id: req.params.id,
                 });
             } catch (e) {
-                console.error(e);
+                console.error(e.message);
                 res.status(500).json({ msg: e.message });
             }
         }
@@ -246,6 +247,7 @@ recipe.delete('/:id', authorization, async (req, res) => {
             res.status(400).json({ msg: 'user does not match.' });
         }
     } catch (e) {
+        console.error(e.message);
         res.status(500).json({ msg: e.message });
     }
 });
@@ -480,6 +482,7 @@ recipe.get('/', getUser, async (req, res) => {
         const recipes = await Recipe.aggregate(aggregate);
         res.status(200).send(recipes);
     } catch (e) {
+        console.error(e.message);
         res.status(500).json({ msg: e.message });
     }
 });
@@ -495,6 +498,7 @@ recipe.get('/baby', getUser, async (req, res) => {
         const recipes = await Recipe.aggregate(aggregate);
         res.send(recipes);
     } catch (e) {
+        console.error(e.message);
         res.status(500).json({ msg: e.message });
     }
 });
@@ -510,6 +514,7 @@ recipe.get('/basic', getUser, async (req, res) => {
         const recipes = await Recipe.aggregate(aggregate);
         res.send(recipes);
     } catch (e) {
+        console.error(e.message);
         res.status(500).json({ msg: e.message });
     }
 });
@@ -525,6 +530,7 @@ recipe.get('/user', authorization, async (req, res) => {
         const recipes = await Recipe.aggregate(aggregate);
         res.send(recipes);
     } catch (e) {
+        console.error(e.message);
         res.status(500).json({ msg: e.message });
     }
 });
@@ -540,6 +546,7 @@ recipe.get('/prototype', authorization, async (req, res) => {
         const recipes = await RecipePrototpye.aggregate(aggregate);
         res.send(recipes);
     } catch (e) {
+        console.error(e.message);
         res.status(500).json({ msg: e.message });
     }
 });
@@ -555,6 +562,7 @@ recipe.get('/favorite', authorization, async (req, res) => {
         const recipes = await Recipe.aggregate(aggregate);
         res.send(recipes);
     } catch (e) {
+        console.error(e.message);
         res.status(500).json({ msg: e.message });
     }
 });
@@ -679,6 +687,7 @@ recipe.get('/:id', getUser, async (req, res) => {
             res.status(400).send({ msg: 'Recipe not available.' });
         }
     } catch (e) {
+        console.error(e.message);
         res.status(500).json({ msg: e.message });
     }
 });
@@ -710,6 +719,7 @@ recipe.post('/prototype', authorization, async (req, res) => {
             id: prototype._id,
         });
     } catch (e) {
+        console.error(e.message);
         res.status(500).json({ msg: e.message });
     }
 });
@@ -734,6 +744,7 @@ recipe.put('/prototype/:id', authorization, async (req, res) => {
             id: req.params.id,
         });
     } catch (e) {
+        console.error(e.message);
         res.status(500).json({ msg: e.message });
     }
 });
@@ -750,6 +761,7 @@ recipe.delete('/prototype/:id', authorization, async (req, res) => {
             res.status(400).json({ msg: 'user does not match.' });
         }
     } catch (e) {
+        console.error(e.message);
         res.status(500).json({ msg: e.message });
     }
 });
@@ -883,6 +895,7 @@ recipe.get('/prototype/:id', authorization, async (req, res) => {
             });
         }
     } catch (e) {
+        console.error(e.message);
         res.status(500).json({ msg: e.message });
     }
 });

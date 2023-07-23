@@ -23,6 +23,7 @@ note.post('/:recipeId', authorization, setNote, validate, async (req, res) => {
             msg: 'created recipe note successfully',
         });
     } catch (e) {
+        console.error(e.message);
         res.status(500).json({ msg: e.message });
     }
 });
@@ -44,6 +45,7 @@ note.delete(
                 res.status(400).send({ msg: 'recipe note does not exists' });
             }
         } catch (e) {
+            console.error(e.message);
             res.status(500).json({ msg: e.message });
         }
     }

@@ -30,6 +30,7 @@ api.post('/contact', contact, validate, async (req, res) => {
         );
         res.status(200).json({ message: 'mail sent successfully' });
     } catch (err) {
+        console.error(err.message);
         res.status(500).json({ message: err.message });
     }
 });

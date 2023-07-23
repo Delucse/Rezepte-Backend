@@ -82,6 +82,7 @@ api.get(
                 }
             );
         } catch (err) {
+            console.error(err.message);
             res.status(500).json({ message: err.message });
         }
     }
@@ -131,6 +132,7 @@ api.get(
                 }
             );
         } catch (err) {
+            console.error(err.message);
             res.status(500).json({ message: err.message });
         }
     }
@@ -145,6 +147,7 @@ api.get('/', authorization, async (req, res) => {
             username: user.username,
         });
     } catch (err) {
+        console.error(err.message);
         res.status(500).json({ message: err.message });
     }
 });
@@ -189,6 +192,7 @@ api.post('/password', resetPassword, validate, async (req, res) => {
             message: 'if user exists, then an email was sent',
         });
     } catch (err) {
+        console.error(err.message);
         res.status(500).json({ message: err.message });
     }
 });
@@ -226,6 +230,7 @@ api.put('/password/:id', setPassword, validate, async (req, res) => {
             }
         );
     } catch (err) {
+        console.error(err.message);
         res.status(500).json({ message: err.message });
     }
 });
@@ -259,6 +264,7 @@ api.put('/password', authorization, newPassword, validate, async (req, res) => {
             message: 'password changed',
         });
     } catch (err) {
+        console.error(err.message);
         res.status(500).json({ message: err.message });
     }
 });
@@ -356,6 +362,7 @@ api.delete('/', authorization, deleteUser, validate, async (req, res) => {
         }
         res.send({ msg: 'deleted user successfully' });
     } catch (err) {
+        console.error(err.message);
         res.status(500).json({ message: err.message });
     }
 });
