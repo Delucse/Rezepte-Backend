@@ -93,6 +93,7 @@ const recipeSchema = mongoose.Schema(
     {
         timestamps: true,
         versionKey: 'updates',
+        collation: { locale: 'de' },
     }
 );
 
