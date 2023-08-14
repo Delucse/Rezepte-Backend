@@ -653,6 +653,7 @@ recipe.get('/:id', getUser, async (req, res) => {
                             _id: 1,
                             file: 1,
                             user: { $arrayElemAt: ['$user.username', 0] },
+                            date: '$createdAt',
                         },
                     },
                 ],
@@ -850,6 +851,7 @@ recipe.get('/prototype/:id', authorization, async (req, res) => {
                                         user: {
                                             $arrayElemAt: ['$user.username', 0],
                                         },
+                                        date: '$createdAt',
                                     },
                                 },
                             ],

@@ -106,6 +106,7 @@ image.get('/', async (req, res) => {
                 $project: {
                     _id: 1,
                     file: 1,
+                    date: '$createdAt',
                     recipe: {
                         _id: 1,
                         title: 1,
@@ -145,6 +146,7 @@ image.get('/user', authorization, async (req, res) => {
                 $project: {
                     _id: 1,
                     file: 1,
+                    date: '$createdAt',
                     recipe: {
                         _id: 1,
                         title: 1,
