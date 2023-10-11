@@ -45,6 +45,10 @@ const recipeSchema = mongoose.Schema(
                 required: true,
             },
         },
+        credits: {
+            type: String,
+            required: false,
+        },
         keywords: [
             {
                 type: String,

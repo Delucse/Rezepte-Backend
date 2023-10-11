@@ -36,6 +36,7 @@ recipe.post('/', authorization, (req, res) => {
                     title,
                     portion,
                     time,
+                    credits,
                     keywords,
                     ingredients,
                     steps,
@@ -47,6 +48,7 @@ recipe.post('/', authorization, (req, res) => {
                     title,
                     portion,
                     time,
+                    credits,
                     keywords,
                     ingredients,
                     steps,
@@ -118,6 +120,7 @@ recipe.put('/:id', authorization, (req, res) => {
                     title,
                     portion,
                     time,
+                    credits,
                     keywords,
                     ingredients,
                     steps,
@@ -175,9 +178,15 @@ recipe.put('/:id', authorization, (req, res) => {
                     }
                     newRecipe.pictures = picturesOrder;
                 }
+                const unset = {};
+                if (credits) {
+                    newRecipe.credits = credits;
+                } else {
+                    unset.credits = 1;
+                }
                 const oldRecipe = await Recipe.findByIdAndUpdate(
                     req.params.id,
-                    { $set: newRecipe, $inc: { updates: 1 } },
+                    { $set: newRecipe, $unset: unset, $inc: { updates: 1 } },
                     { new: false }
                 );
                 if (prototype) {
@@ -666,6 +675,7 @@ recipe.get('/:id', getUser, async (req, res) => {
             portion: 1,
             pictures: 1,
             time: 1,
+            credits: 1,
             keywords: 1,
             ingredients: 1,
             steps: 1,
@@ -695,13 +705,22 @@ recipe.get('/:id', getUser, async (req, res) => {
 
 recipe.post('/prototype', authorization, async (req, res) => {
     try {
-        const { id, title, portion, time, keywords, ingredients, steps } =
-            req.body;
+        const {
+            id,
+            title,
+            portion,
+            time,
+            credits,
+            keywords,
+            ingredients,
+            steps,
+        } = req.body;
         var newRecipe = {
             recipe: id,
             title,
             portion,
             time,
+            credits,
             keywords,
             ingredients,
             steps,
@@ -727,7 +746,8 @@ recipe.post('/prototype', authorization, async (req, res) => {
 
 recipe.put('/prototype/:id', authorization, async (req, res) => {
     try {
-        var { title, portion, time, keywords, ingredients, steps } = req.body;
+        var { title, portion, time, credits, keywords, ingredients, steps } =
+            req.body;
         var newRecipe = {
             title,
             portion,
@@ -736,9 +756,15 @@ recipe.put('/prototype/:id', authorization, async (req, res) => {
             ingredients,
             steps,
         };
+        const unset = {};
+        if (credits) {
+            newRecipe.credits = credits;
+        } else {
+            unset.credits = 1;
+        }
         await RecipePrototpye.updateOne(
             { _id: req.params.id },
-            { $set: newRecipe, $inc: { updates: 1 } }
+            { $set: newRecipe, $unset: unset, $inc: { updates: 1 } }
         );
         res.send({
             msg: 'updated recipe prototype successfully',
@@ -870,6 +896,7 @@ recipe.get('/prototype/:id', authorization, async (req, res) => {
                 portion: 1,
                 pictures: { $arrayElemAt: ['$pictures.pictures', 0] },
                 time: 1,
+                credits: 1,
                 keywords: 1,
                 ingredients: 1,
                 steps: 1,
