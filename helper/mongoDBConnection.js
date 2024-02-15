@@ -29,6 +29,7 @@ const connectMongoDB = async function (cb) {
             })
             .catch((err) => {
                 console.log(chalk.red('Connection-Error: MongoDB'));
+                console.log(err);
             });
     } else {
         mongoose.set('strictQuery', true);
