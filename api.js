@@ -46,6 +46,9 @@ if (process.env.MEDIA) {
     }
 } else if (process.env.SHARE) {
     var shareRouter = express.Router();
+    shareRouter.get('/', (req, res) => {
+        res.redirect(process.env.APP_BASE_URL);
+    });
     var sRouter = require('./routes/share');
     shareRouter.use('/r', sRouter);
     api.use(
@@ -104,7 +107,11 @@ api.use(function (err, req, res, next) {
     // res.locals.error = req.api.get('env') === 'development' ? err : {};
 
     res.status(err.status || 500);
-    res.json({ message: `Error: ${err.message}` });
+    if (process.env.MEDIA) {
+        res.send('Not Found');
+    } else {
+        res.json({ message: `Error: ${err.message}` });
+    }
 });
 
 module.exports = api;

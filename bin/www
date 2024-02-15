@@ -8,6 +8,7 @@ var api = require('../api');
 var debug = require('debug')('backend:server');
 var http = require('http');
 var chalk = require('chalk');
+var cron = require('node-cron');
 
 const { connectMongoDB } = require('../helper/mongoDBConnection');
 const { createPreviews } = require('../helper/createRecipePreviews');
@@ -27,6 +28,19 @@ connectMongoDB(function () {
         // add missing recipe previews
         createPreviews();
     }
+    cron.schedule(`*/${process.env.CRON_MINUTES} * * * *`, () => {
+        console.log(
+            chalk.blue.inverse(
+                `Running a${
+                    process.env.MEDIA
+                        ? ' MEDIA'
+                        : process.env.SHARE
+                        ? ' SHARE'
+                        : 'n API'
+                } task.`
+            )
+        );
+    });
 
     /**
      * Create HTTP server.
