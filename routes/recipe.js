@@ -5,6 +5,9 @@ const upload = require('../utils/multer');
 const sharp = require('sharp');
 const { authorization, getUser } = require('../helper/authorization');
 
+const axios = require('axios');
+
+const imageKit = require('../utils/imageKit');
 const path = require('path');
 const fs = require('fs').promises;
 const { v4: uuidv4 } = require('uuid');
@@ -57,35 +60,80 @@ recipe.post('/', authorization, (req, res) => {
                 if (req.files) {
                     const promises = req.files.map(async (file, index) => {
                         const fileName = uuidv4();
-                        const pic = await sharp(file.buffer)
-                            .webp()
-                            .toFile(`${folder}/${fileName}.${fileExtension}`);
-                        var newPic = new Picture({
-                            contentType: `image/${pic.format}`,
-                            size: pic.size,
-                            file: `${fileName}.${fileExtension}`,
-                            user: req.user.id,
-                            recipe: recipeId,
-                        });
-                        if (index === 0) {
-                            await sharp(
-                                `${folder}/${fileName}.${fileExtension}`
-                            )
-                                .resize({
-                                    width: 1200,
-                                    height: 630,
-                                    fit: 'cover',
-                                })
-                                .composite([
-                                    {
-                                        input: `${folder}/logo_256.svg`,
-                                        top: 630 - 256 - 50,
-                                        left: 1200 - 256 - 50,
-                                    },
-                                ])
+                        var newPic;
+                        if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                            const data = await sharp(file.buffer)
+                                .webp()
+                                .toBuffer();
+                            const uFile = await imageKit.upload({
+                                file: data,
+                                fileName: `${fileName}.${fileExtension}`,
+                                useUniqueFileName: false,
+                            });
+                            newPic = new Picture({
+                                _id: uFile.fileId,
+                                contentType: `image/${fileExtension}`,
+                                size: uFile.size,
+                                file: uFile.name,
+                                user: req.user.id,
+                                recipe: recipeId,
+                            });
+                        } else {
+                            const pic = await sharp(file.buffer)
+                                .webp()
                                 .toFile(
-                                    `${folder}/${recipeId}.${fileExtension}`
+                                    `${folder}/${fileName}.${fileExtension}`
                                 );
+                            newPic = new Picture({
+                                contentType: `image/${pic.format}`,
+                                size: pic.size,
+                                file: `${fileName}.${fileExtension}`,
+                                user: req.user.id,
+                                recipe: recipeId,
+                            });
+                        }
+                        if (index === 0) {
+                            if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                                const data = await sharp(file.buffer)
+                                    .webp()
+                                    .resize({
+                                        width: 1200,
+                                        height: 630,
+                                        fit: 'cover',
+                                    })
+                                    .composite([
+                                        {
+                                            input: `${folder}/logo_256.svg`,
+                                            top: 630 - 256 - 50,
+                                            left: 1200 - 256 - 50,
+                                        },
+                                    ])
+                                    .toBuffer();
+                                await imageKit.upload({
+                                    file: data,
+                                    fileName: `${recipeId}.${fileExtension}`,
+                                    useUniqueFileName: false,
+                                });
+                            } else {
+                                await sharp(
+                                    `${folder}/${fileName}.${fileExtension}`
+                                )
+                                    .resize({
+                                        width: 1200,
+                                        height: 630,
+                                        fit: 'cover',
+                                    })
+                                    .composite([
+                                        {
+                                            input: `${folder}/logo_256.svg`,
+                                            top: 630 - 256 - 50,
+                                            left: 1200 - 256 - 50,
+                                        },
+                                    ])
+                                    .toFile(
+                                        `${folder}/${recipeId}.${fileExtension}`
+                                    );
+                            }
                         }
                         return newPic.save().then((pic) => pic._id); // return the promise without calling it yet
                     });
@@ -140,16 +188,38 @@ recipe.put('/:id', authorization, (req, res) => {
                 if (req.files) {
                     const promises = req.files.map(async (file) => {
                         const fileName = uuidv4();
-                        const pic = await sharp(file.buffer)
-                            .webp()
-                            .toFile(`${folder}/${fileName}.${fileExtension}`);
-                        var newPic = new Picture({
-                            contentType: `image/${pic.format}`,
-                            size: pic.size,
-                            file: `${fileName}.${fileExtension}`,
-                            user: req.user.id,
-                            recipe: req.params.id,
-                        });
+                        var newPic;
+                        if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                            const data = await sharp(file.buffer)
+                                .webp()
+                                .toBuffer();
+                            const uFile = await imageKit.upload({
+                                file: data,
+                                fileName: `${fileName}.${fileExtension}`,
+                                useUniqueFileName: false,
+                            });
+                            newPic = new Picture({
+                                _id: uFile.fileId,
+                                contentType: `image/${fileExtension}`,
+                                size: uFile.size,
+                                file: uFile.name,
+                                user: req.user.id,
+                                recipe: req.params.id,
+                            });
+                        } else {
+                            const pic = await sharp(file.buffer)
+                                .webp()
+                                .toFile(
+                                    `${folder}/${fileName}.${fileExtension}`
+                                );
+                            newPic = new Picture({
+                                contentType: `image/${pic.format}`,
+                                size: pic.size,
+                                file: `${fileName}.${fileExtension}`,
+                                user: req.user.id,
+                                recipe: req.params.id,
+                            });
+                        }
                         return newPic.save().then((pic) => pic._id); // return the promise without calling it yet
                     });
                     const pictures = await Promise.all(promises);
@@ -162,7 +232,20 @@ recipe.put('/:id', authorization, (req, res) => {
                             user: req.user.id,
                         });
                         if (deletedPicture) {
-                            await fs.unlink(`${folder}/${deletedPicture.file}`);
+                            if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                                await imageKit
+                                    .deleteFile(deletedPicture._id)
+                                    .catch((err) =>
+                                        console.error(
+                                            err.message,
+                                            deletedPicture._id
+                                        )
+                                    );
+                            } else {
+                                await fs.unlink(
+                                    `${folder}/${deletedPicture.file}`
+                                );
+                            }
                         }
                     });
                 }
@@ -196,10 +279,27 @@ recipe.put('/:id', authorization, (req, res) => {
                     removedPictures &&
                     oldRecipe.pictures.length === removedPictures.length
                 ) {
-                    await fs.unlink(
-                        `${folder}/${req.params.id}.${fileExtension}`
-                    );
-                } else if (
+                    if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                        const files = await imageKit.listFiles({
+                            searchQuery: `name = "${req.params.id}.${fileExtension}"`,
+                        });
+                        if (files.length > 0) {
+                            await imageKit
+                                .deleteFile(files[0].fileId)
+                                .catch((err) =>
+                                    console.error(
+                                        err.message,
+                                        deletedPicture._id
+                                    )
+                                );
+                        }
+                    } else {
+                        await fs.unlink(
+                            `${folder}/${req.params.id}.${fileExtension}`
+                        );
+                    }
+                }
+                if (
                     newRecipe.pictures &&
                     newRecipe.pictures.length > 0 &&
                     (oldRecipe.pictures.length === 0 ||
@@ -208,16 +308,50 @@ recipe.put('/:id', authorization, (req, res) => {
                     const newPreview = await Picture.findById(
                         newRecipe.pictures[0]
                     );
-                    await sharp(`${folder}/${newPreview.file}`)
-                        .resize({ width: 1200, height: 630, fit: 'cover' })
-                        .composite([
-                            {
-                                input: `${folder}/logo_256.svg`,
-                                top: 630 - 256 - 50,
-                                left: 1200 - 256 - 50,
-                            },
-                        ])
-                        .toFile(`${folder}/${req.params.id}.${fileExtension}`);
+                    if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                        const files = await imageKit.listFiles({
+                            searchQuery: `name = "${newPreview.file}"`,
+                        });
+                        if (files.length > 0) {
+                            const img = await axios({
+                                url: files[0].url,
+                                responseType: 'arraybuffer',
+                            });
+                            const data = await sharp(img.data)
+                                .webp()
+                                .resize({
+                                    width: 1200,
+                                    height: 630,
+                                    fit: 'cover',
+                                })
+                                .composite([
+                                    {
+                                        input: `${folder}/logo_256.svg`,
+                                        top: 630 - 256 - 50,
+                                        left: 1200 - 256 - 50,
+                                    },
+                                ])
+                                .toBuffer();
+                            await imageKit.upload({
+                                file: data,
+                                fileName: `${req.params.id}.${fileExtension}`,
+                                useUniqueFileName: false,
+                            });
+                        }
+                    } else {
+                        await sharp(`${folder}/${newPreview.file}`)
+                            .resize({ width: 1200, height: 630, fit: 'cover' })
+                            .composite([
+                                {
+                                    input: `${folder}/logo_256.svg`,
+                                    top: 630 - 256 - 50,
+                                    left: 1200 - 256 - 50,
+                                },
+                            ])
+                            .toFile(
+                                `${folder}/${req.params.id}.${fileExtension}`
+                            );
+                    }
                 }
                 res.send({
                     msg: 'updated recipe successfully',
@@ -244,10 +378,33 @@ recipe.delete('/:id', authorization, async (req, res) => {
                     user: req.user.id,
                 });
                 if (deletedPicture) {
-                    await fs.unlink(`${folder}/${deletedPicture.file}`);
+                    if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                        await imageKit
+                            .deleteFile(deletedPicture._id)
+                            .catch((err) =>
+                                console.error(err.message, deletedPicture._id)
+                            );
+                    } else {
+                        await fs.unlink(`${folder}/${deletedPicture.file}`);
+                    }
                 }
             });
-            await fs.unlink(`${folder}/${deletedRecipe._id}.${fileExtension}`);
+            if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                const files = await imageKit.listFiles({
+                    searchQuery: `name = "${deletedRecipe._id}.${fileExtension}"`,
+                });
+                if (files.length > 0) {
+                    await imageKit
+                        .deleteFile(files[0].fileId)
+                        .catch((err) =>
+                            console.error(err.message, deletedPicture._id)
+                        );
+                }
+            } else {
+                await fs.unlink(
+                    `${folder}/${deletedRecipe._id}.${fileExtension}`
+                );
+            }
             await RecipeUser.deleteMany({
                 recipe: deletedRecipe._id,
             });

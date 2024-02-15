@@ -5,9 +5,7 @@ const mongoose = require('mongoose');
 const Recipe = require('../models/recipe');
 
 const fs = require('fs');
-const path = require('path');
 
-const folder = path.join(__dirname, '..', process.env.MEDIA_PATH || 'public');
 const fileExtension = 'webp';
 
 const description =
@@ -23,6 +21,7 @@ api.get('/:id', async function (req, res) {
             {
                 $project: {
                     title: 1,
+                    pictures: 1,
                 },
             },
         ]);
@@ -36,7 +35,7 @@ api.get('/:id', async function (req, res) {
                 params += `${!params ? '?' : '&'}form=${req.query.form}`;
             }
             var image = `${process.env.MEDIA_URL}/logo1200.png`;
-            if (fs.existsSync(`${folder}/${recipe[0]._id}.${fileExtension}`)) {
+            if (recipe[0].pictures.length > 0) {
                 image = `${process.env.MEDIA_URL}/${recipe[0]._id}.${fileExtension}`;
             }
             res.render('index', {

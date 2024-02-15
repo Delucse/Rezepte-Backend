@@ -23,8 +23,10 @@ api.set('port', port);
  * First connect to MongoDB and then start API-server, then request extreme Weather and finally start APP
  */
 connectMongoDB(function () {
-    // add missing recipe previews
-    createPreviews();
+    if (process.env.SHARE) {
+        // add missing recipe previews
+        createPreviews();
+    }
 
     /**
      * Create HTTP server.

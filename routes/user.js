@@ -9,6 +9,8 @@ const RecipePrototpye = require('../models/recipePrototype');
 
 const jwt = require('jsonwebtoken');
 const cryptojs = require('crypto-js');
+
+const imageKit = require('../utils/imageKit');
 const path = require('path');
 const fs = require('fs').promises;
 const sharp = require('sharp');
@@ -296,12 +298,41 @@ api.delete('/', authorization, deleteUser, validate, async (req, res) => {
                             user: req.user.id,
                         });
                         if (deletedPicture) {
-                            await fs.unlink(`${folder}/${deletedPicture.file}`);
+                            if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                                await imageKit
+                                    .deleteFile(deletedPicture._id)
+                                    .catch((err) =>
+                                        console.error(
+                                            err.message,
+                                            deletedPicture._id
+                                        )
+                                    );
+                            } else {
+                                await fs.unlink(
+                                    `${folder}/${deletedPicture.file}`
+                                );
+                            }
                         }
                     });
-                    await fs.unlink(
-                        `${folder}/${deletedRecipe._id}.${fileExtension}`
-                    );
+                    if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                        const files = await imageKit.listFiles({
+                            searchQuery: `name = "${deletedRecipe._id}.${fileExtension}"`,
+                        });
+                        if (files.length > 0) {
+                            await imageKit
+                                .deleteFile(files[0].fileId)
+                                .catch((err) =>
+                                    console.error(
+                                        err.message,
+                                        deletedPicture._id
+                                    )
+                                );
+                        }
+                    } else {
+                        await fs.unlink(
+                            `${folder}/${deletedRecipe._id}.${fileExtension}`
+                        );
+                    }
                     await RecipeUser.deleteMany({
                         recipe: deletedRecipe._id,
                     });
@@ -313,7 +344,15 @@ api.delete('/', authorization, deleteUser, validate, async (req, res) => {
         if (deletedImages) {
             deletedImages.forEach(async (deletedImage) => {
                 try {
-                    await fs.unlink(`${folder}/${deletedImage.file}`);
+                    if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                        await imageKit
+                            .deleteFile(deletedImage._id)
+                            .catch((err) =>
+                                console.error(err.message, deletedPicture._id)
+                            );
+                    } else {
+                        await fs.unlink(`${folder}/${deletedImage.file}`);
+                    }
                     const recipe = await Recipe.findByIdAndUpdate(
                         deletedImage.recipe,
                         {
@@ -322,27 +361,79 @@ api.delete('/', authorization, deleteUser, validate, async (req, res) => {
                         { new: false }
                     );
                     if (recipe.pictures.length === 1) {
-                        await fs.unlink(
-                            `${folder}/${deletedImage.recipe}.${fileExtension}`
-                        );
+                        if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                            const files = await imageKit.listFiles({
+                                searchQuery: `name = "${deletedImage.recipe}.${fileExtension}"`,
+                            });
+                            if (files.length > 0) {
+                                await imageKit
+                                    .deleteFile(files[0].fileId)
+                                    .catch((err) =>
+                                        console.error(
+                                            err.message,
+                                            deletedPicture._id
+                                        )
+                                    );
+                            }
+                        } else {
+                            await fs.unlink(
+                                `${folder}/${deletedImage.recipe}.${fileExtension}`
+                            );
+                        }
                     } else if (
                         recipe.pictures.indexOf(deletedImage._id) === 0
                     ) {
                         const newPreview = await Picture.findById(
                             recipe.pictures[1]
                         );
-                        await sharp(`${folder}/${newPreview.file}`)
-                            .resize({ width: 1200, height: 630, fit: 'cover' })
-                            .composite([
-                                {
-                                    input: `${folder}/logo_256.svg`,
-                                    top: 630 - 256 - 50,
-                                    left: 1200 - 256 - 50,
-                                },
-                            ])
-                            .toFile(
-                                `${folder}/${deletedImage.recipe}.${fileExtension}`
-                            );
+                        if (process.env.IMAGEKIT_PUBLIC_KEY) {
+                            const files = await imageKit.listFiles({
+                                searchQuery: `name = "${newPreview.file}"`,
+                            });
+                            if (files.length > 0) {
+                                const img = await axios({
+                                    url: files[0].url,
+                                    responseType: 'arraybuffer',
+                                });
+                                const data = await sharp(img.data)
+                                    .webp()
+                                    .resize({
+                                        width: 1200,
+                                        height: 630,
+                                        fit: 'cover',
+                                    })
+                                    .composite([
+                                        {
+                                            input: `${folder}/logo_256.svg`,
+                                            top: 630 - 256 - 50,
+                                            left: 1200 - 256 - 50,
+                                        },
+                                    ])
+                                    .toBuffer();
+                                await imageKit.upload({
+                                    file: data,
+                                    fileName: `${deletedImage.recipe}.${fileExtension}`,
+                                    useUniqueFileName: false,
+                                });
+                            }
+                        } else {
+                            await sharp(`${folder}/${newPreview.file}`)
+                                .resize({
+                                    width: 1200,
+                                    height: 630,
+                                    fit: 'cover',
+                                })
+                                .composite([
+                                    {
+                                        input: `${folder}/logo_256.svg`,
+                                        top: 630 - 256 - 50,
+                                        left: 1200 - 256 - 50,
+                                    },
+                                ])
+                                .toFile(
+                                    `${folder}/${deletedImage.recipe}.${fileExtension}`
+                                );
+                        }
                     }
                 } catch (err) {
                     console.error(err);
