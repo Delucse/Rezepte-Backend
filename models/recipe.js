@@ -112,6 +112,7 @@ recipeSchema.index(
     {
         default_language: 'de',
         name: 'all',
+        collation: { locale: 'simple' },
     }
 );
 
