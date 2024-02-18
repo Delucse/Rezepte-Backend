@@ -17,6 +17,7 @@
         "express-validator": "^6.15.0",
         "hbs": "^4.2.0",
         "http-errors": "~1.6.3",
+        "http-proxy-middleware": "^2.0.6",
         "imagekit": "^5.0.0",
         "jsonwebtoken": ">=9.0.0",
         "moment": "^2.29.4",
