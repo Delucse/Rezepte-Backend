@@ -16,7 +16,15 @@ require('dotenv').config({
 var api = express();
 
 api.use(logger('dev'));
-api.use(cors({ credentials: true, origin: process.env.APP_BASE_URL }));
+api.use(
+    cors({
+        credentials: true,
+        origin: [
+            process.env.APP_BASE_URL,
+            ...process.env.CORS_ORIGIN.split(','),
+        ],
+    })
+);
 
 api.set('views', './views');
 api.set('view engine', 'hbs');
