@@ -27,15 +27,14 @@ api.use(cookieParser());
 // proxy
 const mediaProxy = createProxyMiddleware(
     function (pathname, req) {
-        console.log(
-            req.method === 'GET' && req.headers.host === process.env.MEDIA_HOST
-        );
         return (
             req.method === 'GET' && req.headers.host === process.env.MEDIA_HOST
         );
     },
     {
-        target: `${process.env.API_BASE_URL}/media`,
+        changeOrigin: true,
+        target: `${process.env.API_BASE_URL}`,
+        pathRewrite: { '^/': '/media/' },
     }
 );
 const shareProxy = createProxyMiddleware(
@@ -45,7 +44,9 @@ const shareProxy = createProxyMiddleware(
         );
     },
     {
-        target: `${process.env.API_BASE_URL}/share`,
+        changeOrigin: true,
+        target: `${process.env.API_BASE_URL}`,
+        pathRewrite: { '^/': '/share/' },
     }
 );
 api.use(mediaProxy);
